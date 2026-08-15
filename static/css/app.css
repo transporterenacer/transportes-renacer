@@ -1,0 +1,59 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface-base);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--primary);
+  color: var(--primary-ink);
+  padding: 12px 24px;
+}
+.topbar-brand { font-weight: 600; font-size: 16px; }
+.topbar-nav { display: flex; gap: 16px; align-items: center; }
+.btn-link {
+  background: none; border: none; color: var(--primary-ink);
+  text-decoration: underline; cursor: pointer; font-size: 14px;
+}
+
+.main { max-width: 1180px; margin: 0 auto; padding: 32px 24px 80px; }
+
+.btn {
+  border: none; border-radius: 6px; padding: 9px 16px;
+  font-size: 14px; cursor: pointer; font-weight: 600;
+}
+.btn-primary { background: var(--secondary); color: var(--secondary-ink); }
+.btn-primary:hover { background: var(--secondary-hover); }
+
+.login-wrap { display: flex; justify-content: center; padding-top: 60px; }
+.login-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 28px; width: 360px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.login-card form p { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.login-card input {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+  font-size: 14px;
+}
+.form-error { color: var(--danger-ink); font-size: 13px; margin-top: 12px; }
+
+@media (max-width: 720px) {
+  .main { padding: 20px 14px 60px; }
+}

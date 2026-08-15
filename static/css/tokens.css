@@ -1,0 +1,21 @@
+:root {
+  --primary:       #0A2A4A;
+  --primary-dark:  #071E35;
+  --primary-ink:   #FFFFFF;
+
+  --secondary:       #FF5A1F;
+  --secondary-hover: #E64A14;
+  --secondary-ink:   #FFFFFF;
+
+  --ok:         #1E9E5A;  --ok-tint:  #E3F5EC;  --ok-ink:  #0E5C37;
+  --warn:       #B45309;  --warn-tint:#FFF1D6;  --warn-ink:#7A4507;
+  --danger:     #D92D20;  --danger-tint:#FDE9E9;--danger-ink:#8F1D13;
+
+  --surface:       #FFFFFF;
+  --surface-base:  #F8F9FA;
+  --surface-hover: #EEF1F4;
+  --line:          #D5DCE3;
+  --ink:           #16212B;
+  --ink-dim:       #5A6B7B;
+  --ink-faint:     #8A97A5;
+}
