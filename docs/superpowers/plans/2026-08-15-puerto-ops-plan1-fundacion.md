@@ -23,7 +23,7 @@
 - Grupos Django: `Admin`, `Secretaria`, `Gerencia`.
 - Fecha lÃ­mite de alerta de vencimiento: 30 dÃ­as (constante `ALERT_DAYS = 30` en `apps.flota.services`).
 - Formato de cÃ³digo: PEP 8; sin comentarios salvo docstrings de mÃ³dulo/funciÃ³n cuando aporten.
-- No se usa git por el momento (trabajo solo local). Cada task termina con tests en verde. No se ejecuta ningun comando git.
+- Git SOLO LOCAL (sin remoto). Cada task termina con tests en verde y un commit local.
 
 ---
 
@@ -254,9 +254,12 @@ python manage.py migrate
 
 Expected: `check` devuelve "System check identified no issues". `migrate` aplica las migraciones base de Django sin errores (SQLite dev).
 
-- [ ] **Step 5: Punto de control local**
+- [ ] **Step 5: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "chore: scaffolding del proyecto Django con settings por entorno"
+```
 
 ---
 
@@ -449,9 +452,12 @@ class Command(BaseCommand):
 Run: `python manage.py test apps.core.tests -v 2`
 Expected: PASS (5 tests).
 
-- [ ] **Step 9: Punto de control local**
+- [ ] **Step 9: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(core): mixins de auditoria y comando setup_groups"
+```
 
 ---
 
@@ -664,9 +670,12 @@ h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
 Run: `python manage.py test apps.core.tests -v 2`
 Expected: PASS (7 tests) y la pÃ¡gina de login renderiza con el CSS.
 
-- [ ] **Step 7: Punto de control local**
+- [ ] **Step 7: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(core): base visual con tokens CSS, template base y login"
+```
 
 ---
 
@@ -829,9 +838,12 @@ python manage.py migrate
 Run: `python manage.py test apps.catalogos.tests -v 2`
 Expected: PASS (5 tests).
 
-- [ ] **Step 6: Punto de control local**
+- [ ] **Step 6: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(catalogos): clientes, puertos y categorias de novedades"
+```
 
 ---
 
@@ -961,9 +973,12 @@ python manage.py migrate
 Run: `python manage.py test apps.conductores.tests -v 2`
 Expected: PASS (4 tests).
 
-- [ ] **Step 6: Punto de control local**
+- [ ] **Step 6: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(conductores): modelo de conductores con estados"
+```
 
 ---
 
@@ -1190,9 +1205,12 @@ python manage.py migrate
 Run: `python manage.py test apps.flota.tests -v 2`
 Expected: PASS (8 tests).
 
-- [ ] **Step 6: Punto de control local**
+- [ ] **Step 6: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(flota): modelo de vehiculos y documentos con vencimiento"
+```
 
 ---
 
@@ -1349,9 +1367,12 @@ Expected: PASS (13 tests total en `apps.flota`).
 Run: `python manage.py test -v 2`
 Expected: PASS (todos los tests del proyecto: core, catalogos, conductores, flota).
 
-- [ ] **Step 6: Punto de control local**
+- [ ] **Step 6: Commit local**
 
-Sin commit (modo local). Tests en verde. Guardado en disco.
+```bash
+git add -A
+git commit -m "feat(flota): servicios de alertas de vencimiento de documentos"
+```
 
 ---
 
@@ -1372,5 +1393,10 @@ Sin commit (modo local). Tests en verde. Guardado en disco.
 **Placeholders:** ninguno; cada paso contiene cÃ³digo o comandos reales.
 
 **Consistencia de tipos:** `dias_restantes()` definido en Task 6 y usado en Task 7 con la misma semÃ¡ntica. `alertas_vencimiento()` produce dicts con las claves documentadas en "Produces". `AuditMixin` heredado por Client/Port/IncidentCategory/Driver/Vehicle/VehicleDocument.
+
+
+
+
+
 
 
