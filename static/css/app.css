@@ -68,6 +68,15 @@ h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
 }
 .table th { background: var(--surface-hover); font-family: "IBM Plex Mono", monospace; font-size: 12px; }
 
+.tag {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  background: var(--surface-hover); color: var(--ink-dim);
+}
+.tag-ok { background: var(--ok); color: var(--ok-ink); }
+.tag-warn { background: var(--warn); color: var(--warn-ink); }
+.tag-danger { background: var(--danger); color: var(--danger-ink); }
+
 @media (max-width: 720px) {
   .main { padding: 20px 14px 60px; }
 }

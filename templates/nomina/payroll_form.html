@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Nueva liquidación{% endblock %}
+{% block content %}
+<p class="eyebrow">Nómina</p>
+<h1>Nueva liquidación</h1>
+<form method="post" class="card">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Liquidar periodo</button>
+</form>
+{% endblock %}
