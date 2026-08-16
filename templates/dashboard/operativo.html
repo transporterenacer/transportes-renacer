@@ -16,7 +16,7 @@
 
 <div class="kpi-grid">
   <div class="kpi">
-    <span class="kpi-value">{{ kpis.cumplimiento_promedio|default:"—"|floatformat:1 }}%</span>
+    <span class="kpi-value">{{ kpis.cumplimiento_promedio|floatformat:1|default:"—" }}%</span>
     <span class="kpi-label">Cumplimiento promedio</span>
   </div>
   <div class="kpi">
