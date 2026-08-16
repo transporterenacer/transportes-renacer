@@ -2,15 +2,21 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
-from apps.catalogos.models import Client, IncidentCategory, Port
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 
 
 class CatalogModelsTests(TestCase):
-    def test_client_creation(self):
-        client = Client.objects.create(
+    def test_cargo_generator_creation(self):
+        generator = CargoGenerator.objects.create(
             nombre="Puerto de Barranquilla", nit="901000000-0"
         )
-        self.assertEqual(str(client), "Puerto de Barranquilla")
+        self.assertEqual(str(generator), "Puerto de Barranquilla")
+
+    def test_multiple_generators_without_nit(self):
+        first = CargoGenerator.objects.create(nombre="Generador A")
+        second = CargoGenerator.objects.create(nombre="Generador B")
+        self.assertIsNone(first.nit)
+        self.assertIsNone(second.nit)
 
     def test_port_creation(self):
         port = Port.objects.create(nombre="Sociedad Portuaria Regional", ciudad="Barranquilla")

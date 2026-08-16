@@ -33,7 +33,7 @@ class Vehicle(AuditMixin):
         return self.placa
 
     def save(self, *args, **kwargs):
-        self.placa = self.placa.upper()
+        self.placa = self.placa.strip().upper()
         super().save(*args, **kwargs)
 
 

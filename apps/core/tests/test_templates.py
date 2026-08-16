@@ -11,3 +11,8 @@ class TemplateTests(SimpleTestCase):
     def test_base_template_has_css_tokens(self):
         response = self.client.get(reverse("login"))
         self.assertContains(response, "tokens.css")
+
+    def test_inicio_page_renders(self):
+        response = self.client.get(reverse("inicio"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Panel de control")

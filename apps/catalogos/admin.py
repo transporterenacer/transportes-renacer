@@ -1,10 +1,10 @@
 from django.contrib import admin
 
-from apps.catalogos.models import Client, IncidentCategory, Port
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 
 
-@admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
+@admin.register(CargoGenerator)
+class CargoGeneratorAdmin(admin.ModelAdmin):
     list_display = ("nombre", "nit", "contacto", "telefono")
     search_fields = ("nombre", "nit")
 

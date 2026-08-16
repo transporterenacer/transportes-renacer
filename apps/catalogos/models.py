@@ -3,15 +3,15 @@ from django.db import models
 from apps.core.models import AuditMixin
 
 
-class Client(AuditMixin):
+class CargoGenerator(AuditMixin):
     nombre = models.CharField(max_length=200)
-    nit = models.CharField("NIT", max_length=20, unique=True, blank=True, default="")
+    nit = models.CharField("NIT", max_length=20, unique=True, null=True, blank=True)
     contacto = models.CharField(max_length=200, blank=True, default="")
     telefono = models.CharField(max_length=30, blank=True, default="")
 
     class Meta:
-        verbose_name = "Cliente"
-        verbose_name_plural = "Clientes"
+        verbose_name = "Generador de carga"
+        verbose_name_plural = "Generadores de carga"
         ordering = ["nombre"]
 
     def __str__(self):

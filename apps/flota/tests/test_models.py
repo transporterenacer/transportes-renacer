@@ -17,6 +17,10 @@ class VehicleTests(TestCase):
         v = Vehicle.objects.create(placa="abc123")
         self.assertEqual(v.placa, "ABC123")
 
+    def test_vehicle_plate_stripped(self):
+        v = Vehicle.objects.create(placa=" abc123 ")
+        self.assertEqual(v.placa, "ABC123")
+
     def test_vehicle_default_state(self):
         v = Vehicle.objects.create(placa="ABC123")
         self.assertEqual(v.estado, Vehicle.DISPONIBLE)

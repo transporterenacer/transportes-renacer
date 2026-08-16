@@ -97,7 +97,7 @@ Restricciones de vista por grupo en las vistas (mixins de permisos). Los campos 
 Todas las tablas relevantes llevan `created_at`, `updated_at`, `created_by`, `updated_by` (mixins). El historial completo de modificaciones se registra con `django-simple-history`.
 
 ### Catálogos
-**`clients`** — nombre, nit, contacto, teléfono.
+**`cargo_generators`** — Generador de carga: nombre, nit (opcional, único si se llena), contacto, teléfono.
 **`ports`** — nombre, ciudad.
 **`incident_categories`** — nombre (unique), activa. Catálogo de novedades (Lluvia, Avería mecánica, Pinchazo, Tanqueo, Falla eléctrica, Espera de embarque, Problema operativo del puerto, Cambio de mula, Cambio de conductor, Espera, Otro). Se pueden crear nuevas categorías desde el registro de turno.
 
@@ -111,7 +111,7 @@ Todas las tablas relevantes llevan `created_at`, `updated_at`, `created_by`, `up
 **drivers**: `disponible | trabajando | inactivo`
 
 ### Operaciones
-**`operations`** — codigo (unique), buque, cliente FK, puerto FK, fecha_inicio, fecha_fin_estimada, fecha_fin_real (null), estado, meta_horas (default 11), tarifa_hora, valor_turno_dia, valor_turno_noche, observaciones.
+**`operations`** — codigo (unique), buque, generador_de_carga FK, puerto FK, fecha_inicio, fecha_fin_estimada, fecha_fin_real (null), estado, meta_horas (default 11), tarifa_hora, valor_turno_dia, valor_turno_noche, observaciones.
 
 Estado: `programada | activa | finalizada | cancelada`. Las finalizadas/canceladas no se eliminan: pasan a historial.
 
@@ -236,7 +236,7 @@ transportes-renacer/
     asgi.py
   apps/
     core/          # mixins (TimeStampedModel, UserStampedModel), permisos, audit
-    catalogos/     # clients, ports, incident_categories
+    catalogos/     # cargo_generators, ports, incident_categories
     flota/         # vehicles, vehicle_documents, alertas
     conductores/   # drivers
     operaciones/   # operations, operation_vehicles, shifts, incidents, gantt/timeline
@@ -271,7 +271,7 @@ transportes-renacer/
 ## 11. Alcance MVP
 
 **Incluido (P0 completo + dashboards/Gantt básicos):**
-Usuarios y roles, conductores, mulas, clientes, puertos, operaciones, tarifas, asignación de mulas, registro de turnos, cálculo de horas, cumplimiento, novedades (con creación de categorías), cancelación de turnos, nómina semanal, abonos a conductores, control de turnos pagados, facturación por horas, abonos de clientes, saldos, CSV, estados de vehículos, SOAT, técnico-mecánica, alertas de vencimiento, dashboards (principal, flota, nómina, operativo, financiero), historial de operaciones, Gantt por operación, detección de doble turno, ranking de conductores, horas por mula/operación, análisis de novedades, fecha "actualizado hasta".
+Usuarios y roles, conductores, mulas, generadores de carga, puertos, operaciones, tarifas, asignación de mulas, registro de turnos, cálculo de horas, cumplimiento, novedades (con creación de categorías), cancelación de turnos, nómina semanal, abonos a conductores, control de turnos pagados, facturación por horas, abonos de clientes, saldos, CSV, estados de vehículos, SOAT, técnico-mecánica, alertas de vencimiento, dashboards (principal, flota, nómina, operativo, financiero), historial de operaciones, Gantt por operación, detección de doble turno, ranking de conductores, horas por mula/operación, análisis de novedades, fecha "actualizado hasta".
 
 **Excluido (fuera de MVP):** reportes avanzados, exportaciones adicionales, automatización de relaciones, notificaciones automáticas, WhatsApp/email, app móvil, digitalización de boletas con foto/OCR, drag/resize del Gantt.
 
