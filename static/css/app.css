@@ -54,6 +54,20 @@ h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
 }
 .form-error { color: var(--danger-ink); font-size: 13px; margin-top: 12px; }
 
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 640px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.table { width: 100%; border-collapse: collapse; margin-top: 16px; background: var(--surface); }
+.table th, .table td {
+  border: 1px solid var(--line); padding: 8px 12px; text-align: left; font-size: 14px;
+}
+.table th { background: var(--surface-hover); font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+
 @media (max-width: 720px) {
   .main { padding: 20px 14px 60px; }
 }

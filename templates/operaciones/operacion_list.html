@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Operaciones{% endblock %}
+{% block content %}
+<p class="eyebrow">Transportes Renacer</p>
+<h1>Operaciones activas</h1>
+{% if creando %}
+  <form method="post" class="card">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Crear operación</button>
+  </form>
+{% else %}
+  <a class="btn btn-primary" href="{% url 'operaciones:nuevo' %}">Nueva operación</a>
+  <table class="table">
+    <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th><th>Estado</th></tr></thead>
+    <tbody>
+    {% for op in operaciones %}
+      <tr>
+        <td><a href="{% url 'operaciones:detalle' op.pk %}">{{ op.codigo }}</a></td>
+        <td>{{ op.buque }}</td>
+        <td>{{ op.generador_de_carga }}</td>
+        <td>{{ op.puerto }}</td>
+        <td>{{ op.get_estado_display }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No hay operaciones activas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

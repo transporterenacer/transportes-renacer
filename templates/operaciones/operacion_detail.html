@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ operation.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Operación</p>
+<h1>{{ operation.buque }}</h1>
+<p><strong>{{ operation.codigo }}</strong> · {{ operation.generador_de_carga }} · {{ operation.puerto }}</p>
+<p>Meta: {{ operation.meta_horas }} h · Tarifa: ${{ operation.tarifa_hora }}/h · Turno día: ${{ operation.valor_turno_dia }}</p>
+<h2>Mulas asignadas</h2>
+<ul>
+  {% for mula in operation.mulas.all %}
+    <li>{{ mula.vehicle.placa }}{% if mula.activa %} · activa{% endif %}</li>
+  {% empty %}
+    <li>Sin mulas asignadas.</li>
+  {% endfor %}
+</ul>
+<h2>Turnos</h2>
+<a class="btn btn-primary" href="{% url 'operaciones:turno_nuevo' operation.pk %}">Registrar turno</a>
+<table class="table">
+  <thead><tr><th>Mula</th><th>Conductor</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Cumpl.</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for shift in operation.shifts.all %}
+    <tr>
+      <td>{{ shift.vehicle.placa }}</td>
+      <td>{{ shift.driver }}</td>
+      <td>{{ shift.fecha_inicio|date:"d/m/Y H:i" }}</td>
+      <td>{{ shift.fecha_fin|date:"d/m/Y H:i" }}</td>
+      <td>{{ shift.horas_trabajadas }}</td>
+      <td>{{ shift.cumplimiento_pct }}%</td>
+      <td>{{ shift.get_estado_display }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7">Sin turnos registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
