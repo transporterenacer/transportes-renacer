@@ -3,12 +3,12 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from apps.dashboard.services import kpis_inicio, kpis_nomina, ultima_actualizacion
+from apps.dashboard.services import kpis_inicio, kpis_nomina, kpis_operativo, ultima_actualizacion
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle, VehicleDocument
 from apps.flota.services import alertas_vencimiento
 from apps.nomina.models import DriverAdvance, Payroll
-from apps.operaciones.models import Operation, Shift
+from apps.operaciones.models import Incident, Operation, Shift
 
 
 @login_required
@@ -61,7 +61,8 @@ def dashboard_nomina(request):
 @login_required
 def dashboard_operativo(request):
     context = {
-        "ultima_actualizacion": ultima_actualizacion(Operation, Shift),
+        "kpis": kpis_operativo(),
+        "ultima_actualizacion": ultima_actualizacion(Operation, Shift, Incident),
     }
     return render(request, "dashboard/operativo.html", context)
 

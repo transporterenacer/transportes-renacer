@@ -1,12 +1,12 @@
 from decimal import Decimal
 
-from django.db.models import Count, Max, Sum
+from django.db.models import Avg, Count, Max, Sum
 
 from apps.conductores.models import Driver
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle
 from apps.nomina.models import DriverAdvance, Payroll
-from apps.operaciones.models import Operation, Shift
+from apps.operaciones.models import Incident, Operation, Shift
 from apps.operaciones.services import detectar_dobles_turnos
 
 
@@ -92,4 +92,48 @@ def kpis_nomina(desde, hasta):
         "ranking_horas": ranking_horas,
         "ranking_turnos": ranking_turnos,
         "dobles_turnos": detectar_dobles_turnos(desde=desde, hasta=hasta),
+    }
+
+
+def kpis_operativo():
+    realizados = Shift.objects.filter(estado=Shift.REALIZADO)
+
+    horas_por_operacion = list(
+        realizados.values("operation__codigo")
+        .annotate(horas=Sum("horas_trabajadas"))
+        .order_by("-horas")
+    )
+    horas_por_mula = list(
+        realizados.values("vehicle__placa")
+        .annotate(horas=Sum("horas_trabajadas"))
+        .order_by("-horas")
+    )
+
+    cumplimiento = realizados.aggregate(avg=Avg("cumplimiento_pct"))["avg"]
+
+    horas_perdidas = Decimal(0)
+    for shift in realizados.only("meta_horas", "horas_trabajadas"):
+        perdidas = float(shift.meta_horas) - float(shift.horas_trabajadas)
+        if perdidas > 0:
+            horas_perdidas += Decimal(perdidas)
+
+    principales_novedades = list(
+        Incident.objects.values("categoria__nombre")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    operaciones_menor_cumplimiento = list(
+        realizados.values("operation__codigo", "operation__id")
+        .annotate(avg_cumpl=Avg("cumplimiento_pct"))
+        .order_by("avg_cumpl")[:5]
+    )
+
+    return {
+        "horas_por_operacion": horas_por_operacion,
+        "horas_por_mula": horas_por_mula,
+        "cumplimiento_promedio": round(float(cumplimiento), 1) if cumplimiento else None,
+        "horas_perdidas": horas_perdidas,
+        "principales_novedades": principales_novedades,
+        "operaciones_menor_cumplimiento": operaciones_menor_cumplimiento,
     }

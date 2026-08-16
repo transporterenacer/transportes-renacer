@@ -4,5 +4,84 @@
 <p class="eyebrow">Transportes Renacer · Dashboard</p>
 <h1>Operativo</h1>
 <p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+
+<nav class="dashboard-nav">
+  <a href="{% url 'dashboard:inicio' %}">Inicio</a>
+  <a href="{% url 'dashboard:vencimientos' %}">Vencimientos</a>
+  <a href="{% url 'dashboard:operativo' %}">Operativo</a>
+  <a href="{% url 'dashboard:nomina' %}">Nómina</a>
+  <a href="{% url 'dashboard:financiero' %}">Financiero</a>
+  <a href="{% url 'dashboard:historial' %}">Historial</a>
+</nav>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <span class="kpi-value">{{ kpis.cumplimiento_promedio|default:"—"|floatformat:1 }}%</span>
+    <span class="kpi-label">Cumplimiento promedio</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-value">{{ kpis.horas_perdidas|floatformat:1 }} h</span>
+    <span class="kpi-label">Horas perdidas</span>
+  </div>
+</div>
+
+<h2>Horas por operación</h2>
+<table class="table">
+  <thead><tr><th>Operación</th><th>Horas trabajadas</th></tr></thead>
+  <tbody>
+  {% for r in kpis.horas_por_operacion %}
+    <tr>
+      <td>{{ r.operation__codigo }}</td>
+      <td>{{ r.horas|floatformat:1 }} h</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="2">Sin turnos realizados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Horas por mula</h2>
+<table class="table">
+  <thead><tr><th>Mula</th><th>Horas trabajadas</th></tr></thead>
+  <tbody>
+  {% for r in kpis.horas_por_mula %}
+    <tr>
+      <td>{{ r.vehicle__placa }}</td>
+      <td>{{ r.horas|floatformat:1 }} h</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="2">Sin turnos realizados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Principales novedades</h2>
+<table class="table">
+  <thead><tr><th>Categoría</th><th>Registros</th></tr></thead>
+  <tbody>
+  {% for r in kpis.principales_novedades %}
+    <tr>
+      <td>{{ r.categoria__nombre }}</td>
+      <td>{{ r.total }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="2">Sin novedades registradas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Operaciones con menor cumplimiento</h2>
+<table class="table">
+  <thead><tr><th>Operación</th><th>Cumplimiento promedio</th></tr></thead>
+  <tbody>
+  {% for r in kpis.operaciones_menor_cumplimiento %}
+    <tr>
+      <td>{{ r.operation__codigo }}</td>
+      <td>{{ r.avg_cumpl|floatformat:1 }}%</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="2">Sin turnos realizados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
