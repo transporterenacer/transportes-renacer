@@ -1,12 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
-from apps.dashboard.services import kpis_inicio, ultima_actualizacion
+from apps.dashboard.services import kpis_inicio, kpis_nomina, ultima_actualizacion
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle, VehicleDocument
 from apps.flota.services import alertas_vencimiento
-from apps.nomina.models import Payroll
+from apps.nomina.models import DriverAdvance, Payroll
 from apps.operaciones.models import Operation, Shift
 
 
@@ -40,8 +41,19 @@ def dashboard_vencimientos(request):
 
 @login_required
 def dashboard_nomina(request):
+    desde = request.GET.get("desde")
+    hasta = request.GET.get("hasta")
+    try:
+        desde = timezone.datetime.strptime(desde, "%Y-%m-%d").date()
+        hasta = timezone.datetime.strptime(hasta, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        desde = timezone.localdate() - timezone.timedelta(days=6)
+        hasta = timezone.localdate()
     context = {
-        "ultima_actualizacion": ultima_actualizacion(Payroll),
+        "kpis": kpis_nomina(desde, hasta),
+        "desde": desde,
+        "hasta": hasta,
+        "ultima_actualizacion": ultima_actualizacion(Payroll, Shift, DriverAdvance),
     }
     return render(request, "dashboard/nomina.html", context)
 

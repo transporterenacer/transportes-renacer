@@ -87,6 +87,21 @@ h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
   color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;
 }
 .dashboard-nav a:hover { background: var(--surface-hover); }
+.filtro-semana {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+  margin: 0 0 28px; padding: 16px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.filtro-semana label { font-size: 12px; color: var(--ink-dim); margin-bottom: 4px; display: block; }
+.filtro-semana input[type="date"] {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px;
+}
+.alerta-titulo { margin-top: 8px; }
+.alerta {
+  border: 1px solid var(--danger-tint); background: var(--danger-tint);
+  border-radius: 8px; padding: 8px 16px; margin-bottom: 28px;
+}
+.alerta p { margin: 8px 0; font-size: 14px; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
 .kpi-value { display: block; font-family: "IBM Plex Mono", monospace; font-size: 20px; font-weight: 600; }

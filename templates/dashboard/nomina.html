@@ -1,8 +1,82 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Nómina{% endblock %}
 {% block content %}
 <p class="eyebrow">Transportes Renacer · Dashboard</p>
 <h1>Nómina</h1>
 <p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+
+<nav class="dashboard-nav">
+  <a href="{% url 'dashboard:inicio' %}">Inicio</a>
+  <a href="{% url 'dashboard:vencimientos' %}">Vencimientos</a>
+  <a href="{% url 'dashboard:operativo' %}">Operativo</a>
+  <a href="{% url 'dashboard:financiero' %}">Financiero</a>
+  <a href="{% url 'dashboard:historial' %}">Historial</a>
+</nav>
+
+<form class="filtro-semana" method="get" action="{% url 'dashboard:nomina' %}">
+  <label for="desde">Desde</label>
+  <input type="date" id="desde" name="desde" value="{{ desde|date:'Y-m-d' }}">
+  <label for="hasta">Hasta</label>
+  <input type="date" id="hasta" name="hasta" value="{{ hasta|date:'Y-m-d' }}">
+  <button type="submit" class="btn btn-primary">Filtrar semana</button>
+</form>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-value">${{ kpis.total|intcomma }}</span><span class="kpi-label">Total pendiente de pago</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.horas|floatformat:0 }} h</span><span class="kpi-label">Horas trabajadas</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.abonos|intcomma }}</span><span class="kpi-label">Abonos</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.neto|intcomma }}</span><span class="kpi-label">Neto a pagar</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.conductores }}</span><span class="kpi-label">Conductores</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.turnos }}</span><span class="kpi-label">Turnos</span></div>
+</div>
+
+{% if kpis.dobles_turnos %}
+<h2 class="alerta-titulo">Posible doble turno</h2>
+<div class="alerta">
+  {% for dt in kpis.dobles_turnos %}
+    <p>
+      <strong>{{ dt.driver }}</strong> — {{ dt.turno_a.vehicle.placa }} {{ dt.turno_a.fecha_inicio|date:"d/m H:i" }} a {{ dt.turno_a.fecha_fin|date:"d/m H:i" }}
+      y {{ dt.turno_b.vehicle.placa }} {{ dt.turno_b.fecha_inicio|date:"d/m H:i" }} a {{ dt.turno_b.fecha_fin|date:"d/m H:i" }}
+      {% if dt.tipo == "solape" %}
+        <span class="tag tag-danger">Solape</span>
+      {% else %}
+        <span class="tag tag-warn">Descanso &lt; 8 h</span>
+      {% endif %}
+    </p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Ranking por horas</h2>
+<table class="table">
+  <thead><tr><th>Conductor</th><th>Documento</th><th>Horas</th></tr></thead>
+  <tbody>
+  {% for r in kpis.ranking_horas %}
+    <tr>
+      <td>{{ r.driver__nombre }}</td>
+      <td>{{ r.driver__documento }}</td>
+      <td>{{ r.horas|floatformat:1 }} h</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">Sin turnos en el periodo.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Ranking por turnos</h2>
+<table class="table">
+  <thead><tr><th>Conductor</th><th>Documento</th><th>Turnos</th></tr></thead>
+  <tbody>
+  {% for r in kpis.ranking_turnos %}
+    <tr>
+      <td>{{ r.driver__nombre }}</td>
+      <td>{{ r.driver__documento }}</td>
+      <td>{{ r.turnos }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">Sin turnos en el periodo.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

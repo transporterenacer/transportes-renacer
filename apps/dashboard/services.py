@@ -1,11 +1,13 @@
 from decimal import Decimal
 
-from django.db.models import Max, Sum
+from django.db.models import Count, Max, Sum
 
+from apps.conductores.models import Driver
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle
-from apps.nomina.models import Payroll
+from apps.nomina.models import DriverAdvance, Payroll
 from apps.operaciones.models import Operation, Shift
+from apps.operaciones.services import detectar_dobles_turnos
 
 
 def ultima_actualizacion(*modelos):
@@ -49,4 +51,45 @@ def kpis_inicio():
         "abonos": abonos,
         "saldo_pendiente": valor_generado - abonos,
         "nomina_semanal_pendiente": nomina_pendiente,
+    }
+
+
+def kpis_nomina(desde, hasta):
+    turnos = Shift.objects.filter(
+        estado=Shift.REALIZADO,
+        fecha_inicio__date__gte=desde,
+        fecha_inicio__date__lte=hasta,
+    )
+    pendientes = turnos.filter(payroll_items__isnull=True)
+    total = (
+        pendientes.aggregate(total=Sum("valor_pagado"))["total"] or Decimal(0)
+    )
+    horas = turnos.aggregate(total=Sum("horas_trabajadas"))["total"] or Decimal(0)
+    abonos = (
+        DriverAdvance.objects.filter(fecha__gte=desde, fecha__lte=hasta)
+        .aggregate(total=Sum("valor"))["total"]
+        or Decimal(0)
+    )
+
+    ranking_horas = list(
+        turnos.values("driver__nombre", "driver__documento")
+        .annotate(horas=Sum("horas_trabajadas"))
+        .order_by("-horas")[:5]
+    )
+    ranking_turnos = list(
+        turnos.values("driver__nombre", "driver__documento")
+        .annotate(turnos=Count("id"))
+        .order_by("-turnos")[:5]
+    )
+
+    return {
+        "total": total,
+        "horas": horas,
+        "abonos": abonos,
+        "neto": total - abonos,
+        "conductores": turnos.values("driver").distinct().count(),
+        "turnos": turnos.count(),
+        "ranking_horas": ranking_horas,
+        "ranking_turnos": ranking_turnos,
+        "dobles_turnos": detectar_dobles_turnos(desde=desde, hasta=hasta),
     }
