@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 
-from apps.catalogos.models import CargoGenerator, Port
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 from apps.conductores.models import Driver
 from apps.core.models import AuditMixin
 from apps.flota.models import Vehicle
@@ -141,3 +141,20 @@ class Shift(AuditMixin):
     @property
     def valor_es_pagable(self):
         return self.estado == self.REALIZADO
+
+
+class Incident(AuditMixin):
+    shift = models.OneToOneField(
+        Shift, on_delete=models.CASCADE, related_name="incidente"
+    )
+    categoria = models.ForeignKey(
+        IncidentCategory, on_delete=models.PROTECT, related_name="incidentes"
+    )
+    descripcion = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Novedad"
+        verbose_name_plural = "Novedades"
+
+    def __str__(self):
+        return f"{self.categoria.nombre} - {self.shift}"
