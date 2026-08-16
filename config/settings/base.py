@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.conductores",
     "apps.flota",
     "apps.operaciones",
+    "apps.nomina",
 ]
 
 MIDDLEWARE = [
