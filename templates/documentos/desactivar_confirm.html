@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Desactivar conductor{% endblock %}
+{% block content %}
+<p class="eyebrow">Gestión documental</p>
+<h1>Desactivar {{ driver.nombre }}</h1>
+<p>El conductor será marcado como inactivo y sus documentos personales serán eliminados permanentemente del almacenamiento. Su historial operativo y de nómina se conservará.</p>
+<form method="post" class="card">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Confirmar</button>
+  <a class="btn" href="{% url 'documentos:driver' driver.pk %}">Cancelar</a>
+</form>
+{% endblock %}

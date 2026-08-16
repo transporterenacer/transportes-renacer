@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Reemplazar documento{% endblock %}
+{% block content %}
+<p class="eyebrow">Gestión documental</p>
+<h1>Reemplazar documento</h1>
+<p>Este documento reemplazará el {{ documento.tipo.nombre }} actual de {{ documento.entity }}.</p>
+<p>¿Desea reemplazar el documento actual por el nuevo archivo?</p>
+<form method="post" enctype="multipart/form-data" class="card form-expediente">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% if form.non_field_errors %}
+    <p class="form-error">{{ form.non_field_errors.0 }}</p>
+  {% endif %}
+  <button type="submit" class="btn btn-primary">Reemplazar</button>
+  <a class="btn" href="{{ cancelar_url }}">Cancelar</a>
+</form>
+{% endblock %}

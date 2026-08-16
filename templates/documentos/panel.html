@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Gestión documental{% endblock %}
+{% block content %}
+<p class="eyebrow">Gestión documental</p>
+<h1>Documentos</h1>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-value">{{ indicadores.vigentes }}</span><span class="kpi-label">Vigentes</span></div>
+  <div class="kpi"><span class="kpi-value">{{ indicadores.proximos }}</span><span class="kpi-label">Próximos a vencer</span></div>
+  <div class="kpi"><span class="kpi-value">{{ indicadores.vencidos }}</span><span class="kpi-label">Vencidos</span></div>
+  <div class="kpi"><span class="kpi-value">{{ indicadores.faltantes }}</span><span class="kpi-label">Faltantes</span></div>
+</div>
+
+<h2>Alertas de vencimiento</h2>
+<table class="table">
+  <thead><tr><th>Vehículo</th><th>Documento</th><th>Vencimiento</th><th>Días</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for a in alertas %}
+    <tr>
+      <td><a href="{% url 'documentos:vehicle' a.vehiculo.pk %}">{{ a.vehiculo.placa }}</a></td>
+      <td>{{ a.tipo }}</td>
+      <td>{{ a.fecha_vencimiento|date:"d/m/Y" }}</td>
+      <td>{{ a.dias }}</td>
+      <td>
+        {% if a.estado == "vencido" %}<span class="tag tag-danger">🔴 Vencido</span>
+        {% else %}<span class="tag tag-warn">🟡 Próximo</span>{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Sin alertas de vencimiento.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Documentos faltantes</h2>
+<table class="table">
+  <thead><tr><th>Entidad</th><th>Tipo</th></tr></thead>
+  <tbody>
+  {% for f in faltantes %}
+    <tr>
+      <td>{{ f.entidad }}</td>
+      <td><span class="tag">⚪ {{ f.tipo.nombre }}</span></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="2">No hay documentos obligatorios faltantes.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
