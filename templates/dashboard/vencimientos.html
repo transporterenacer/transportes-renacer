@@ -1,8 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Vencimientos{% endblock %}
+{% load humanize %}
+{% block title %}Flota · Vencimientos{% endblock %}
 {% block content %}
-<p class="eyebrow">Transportes Renacer · Dashboard</p>
+<p class="eyebrow">Dashboard de flota</p>
 <h1>Vencimientos</h1>
 <p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-value">{{ flota.total }}</span><span class="kpi-label">Total mulas</span></div>
+  <div class="kpi"><span class="kpi-value">{{ flota.en_operacion }}</span><span class="kpi-label">En operación</span></div>
+  <div class="kpi"><span class="kpi-value">{{ flota.disponibles }}</span><span class="kpi-label">Disponibles</span></div>
+  <div class="kpi"><span class="kpi-value">{{ flota.en_taller }}</span><span class="kpi-label">En taller</span></div>
+  <div class="kpi"><span class="kpi-value">{{ flota.fuera_de_servicio }}</span><span class="kpi-label">Fuera de servicio</span></div>
+</div>
+
+<h2>Documentos próximos a vencer / vencidos</h2>
+<table class="table">
+  <thead><tr><th>Mula</th><th>Documento</th><th>Vencimiento</th><th>Días restantes</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for a in alertas %}
+    <tr>
+      <td><a href="/admin/flota/vehicle/{{ a.vehiculo.pk }}/change/">{{ a.vehiculo.placa }}</a></td>
+      <td>{{ a.tipo }}</td>
+      <td>{{ a.fecha_vencimiento|date:"d/m/y" }}</td>
+      <td>{{ a.dias }}</td>
+      <td>
+        {% if a.estado == "vencido" %}
+          <span class="tag tag-danger">🔴 Vencido</span>
+        {% elif a.estado == "proximo" %}
+          <span class="tag tag-warn">🟡 Próximo</span>
+        {% else %}
+          <span class="tag tag-ok">🟢 Normal</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">No hay documentos próximos a vencer o vencidos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

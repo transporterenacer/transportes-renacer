@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
+from apps.flota.models import Vehicle, VehicleDocument
 
 
 class DashboardViewsTests(TestCase):
@@ -51,3 +55,29 @@ class DashboardViewsTests(TestCase):
     def test_historial_renderiza(self):
         response = self.client.get(reverse("dashboard:historial"))
         self.assertEqual(response.status_code, 200)
+
+
+class VencimientosDashboardTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="x")
+        self.client.force_login(self.user)
+        self.vehicle = Vehicle.objects.create(placa="DEF456")
+
+    def test_vencimientos_muestra_alerta_proximo(self):
+        VehicleDocument.objects.create(
+            vehicle=self.vehicle,
+            tipo=VehicleDocument.SOAT,
+            fecha_vencimiento=timezone.localdate() + timedelta(days=10),
+        )
+        response = self.client.get(reverse("dashboard:vencimientos"))
+        self.assertContains(response, "DEF456")
+        self.assertContains(response, "Próximo")
+
+    def test_vencimientos_muestra_documento_vencido(self):
+        VehicleDocument.objects.create(
+            vehicle=self.vehicle,
+            tipo=VehicleDocument.TECNOMECANICA,
+            fecha_vencimiento=timezone.localdate() - timedelta(days=2),
+        )
+        response = self.client.get(reverse("dashboard:vencimientos"))
+        self.assertContains(response, "Vencido")
