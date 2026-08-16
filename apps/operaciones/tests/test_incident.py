@@ -8,7 +8,7 @@ from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
 from apps.operaciones.models import Operation, Shift
-from apps.operaciones.services import cancelar_turno, registrar_turno
+from apps.operaciones.services import asignar_mulas, cancelar_turno, registrar_turno
 
 
 class IncidentTests(TestCase):
@@ -28,6 +28,7 @@ class IncidentTests(TestCase):
             valor_turno_dia=180000,
             valor_turno_noche=180000,
         )
+        asignar_mulas(self.op, [self.vehicle])
         self.lluvia = IncidentCategory.objects.create(nombre="Lluvia")
 
     def test_registrar_turno_crea_shift_realizado_sin_novedad(self):
@@ -87,6 +88,53 @@ class IncidentTests(TestCase):
             novedad_categoria=self.lluvia,
         )
         self.assertEqual(shift.cumplimiento_pct, 72.7)
+
+    def test_turno_solapado_rechazado(self):
+        registrar_turno(
+            operation=self.op,
+            vehicle=self.vehicle,
+            driver=self.driver,
+            fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
+            fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
+            tipo=Shift.DIA,
+            valor_estandar=self.op.valor_turno_dia,
+            meta_horas=self.op.meta_horas,
+        )
+        with self.assertRaises(ValidationError):
+            registrar_turno(
+                operation=self.op,
+                vehicle=self.vehicle,
+                driver=self.driver,
+                fecha_inicio=timezone.datetime(2026, 8, 10, 16, 0),
+                fecha_fin=timezone.datetime(2026, 8, 10, 20, 0),
+                tipo=Shift.DIA,
+                valor_estandar=self.op.valor_turno_dia,
+                meta_horas=self.op.meta_horas,
+            )
+
+    def test_turno_no_solapado_segundo_turno_valido(self):
+        registrar_turno(
+            operation=self.op,
+            vehicle=self.vehicle,
+            driver=self.driver,
+            fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
+            fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
+            tipo=Shift.DIA,
+            valor_estandar=self.op.valor_turno_dia,
+            meta_horas=self.op.meta_horas,
+        )
+        shift = registrar_turno(
+            operation=self.op,
+            vehicle=self.vehicle,
+            driver=self.driver,
+            fecha_inicio=timezone.datetime(2026, 8, 11, 6, 0),
+            fecha_fin=timezone.datetime(2026, 8, 11, 17, 0),
+            tipo=Shift.DIA,
+            valor_estandar=self.op.valor_turno_dia,
+            meta_horas=self.op.meta_horas,
+        )
+        self.assertEqual(shift.vehicle, self.vehicle)
+        self.assertEqual(self.op.shifts.count(), 2)
 
     def test_cancelar_turno_estado_y_motivo(self):
         shift = registrar_turno(

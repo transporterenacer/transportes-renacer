@@ -1,6 +1,5 @@
-from datetime import timedelta
-
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 
 from apps.flota.models import Vehicle
@@ -57,30 +56,38 @@ def registrar_turno(
             "Un turno con menos horas que la meta requiere una novedad."
         )
 
+    if not operation.mulas.filter(activa=True, vehicle=vehicle).exists():
+        raise ValidationError("El vehículo no está asignado a esta operación.")
+
     overlap = (
-        Shift.objects.filter(vehicle=vehicle, estado__in=["programado", "realizado"])
+        Shift.objects.filter(
+            vehicle=vehicle, estado__in=[Shift.PROGRAMADO, Shift.REALIZADO]
+        )
         .filter(fecha_inicio__lt=fin, fecha_fin__gt=inicio)
         .exists()
     )
     if overlap:
         raise ValidationError("El vehículo ya tiene un turno en ese horario.")
 
-    shift = Shift.objects.create(
-        operation=operation,
-        vehicle=vehicle,
-        driver=driver,
-        fecha_inicio=inicio,
-        fecha_fin=fin,
-        tipo=tipo,
-        valor_estandar=valor_estandar,
-        meta_horas=meta_horas,
-        estado=Shift.REALIZADO,
-        observaciones=observaciones,
-    )
-    if novedad_categoria is not None:
-        Incident.objects.create(
-            shift=shift, categoria=novedad_categoria, descripcion=novedad_descripcion
+    with transaction.atomic():
+        shift = Shift.objects.create(
+            operation=operation,
+            vehicle=vehicle,
+            driver=driver,
+            fecha_inicio=inicio,
+            fecha_fin=fin,
+            tipo=tipo,
+            valor_estandar=valor_estandar,
+            meta_horas=meta_horas,
+            estado=Shift.REALIZADO,
+            observaciones=observaciones,
         )
+        if novedad_categoria is not None:
+            Incident.objects.create(
+                shift=shift,
+                categoria=novedad_categoria,
+                descripcion=novedad_descripcion,
+            )
     return shift
 
 
@@ -93,7 +100,7 @@ def cancelar_turno(shift, motivo, usuario=None):
 
 
 def detectar_dobles_turnos(driver=None, desde=None, hasta=None):
-    shifts = Shift.objects.filter(estado__in=["programado", "realizado"])
+    shifts = Shift.objects.filter(estado__in=[Shift.PROGRAMADO, Shift.REALIZADO])
     if driver is not None:
         shifts = shifts.filter(driver=driver)
     if desde is not None:

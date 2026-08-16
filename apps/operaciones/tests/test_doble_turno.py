@@ -29,8 +29,8 @@ class DobleTurnoTests(TestCase):
             valor_turno_noche=180000,
         )
 
-    def _crear(self, driver, vehicle, inicio, fin):
-        return Shift.objects.create(
+    def _crear(self, driver, vehicle, inicio, fin, **kwargs):
+        defaults = dict(
             operation=self.op,
             vehicle=vehicle,
             driver=driver,
@@ -41,6 +41,8 @@ class DobleTurnoTests(TestCase):
             valor_estandar=self.op.valor_turno_dia,
             estado=Shift.REALIZADO,
         )
+        defaults.update(kwargs)
+        return Shift.objects.create(**defaults)
 
     def test_descanso_insuficiente_detectado(self):
         a = self._crear(
@@ -73,6 +75,22 @@ class DobleTurnoTests(TestCase):
         result = detectar_dobles_turnos(driver=self.juan)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["tipo"], "solape")
+
+    def test_programado_y_realizado_con_poco_descanso_detectado(self):
+        self._crear(
+            self.juan, self.v1,
+            timezone.datetime(2026, 8, 10, 6, 0),
+            timezone.datetime(2026, 8, 10, 17, 0),
+            estado=Shift.PROGRAMADO,
+        )
+        self._crear(
+            self.juan, self.v2,
+            timezone.datetime(2026, 8, 10, 18, 0),
+            timezone.datetime(2026, 8, 11, 5, 0),
+        )
+        result = detectar_dobles_turnos(driver=self.juan)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["tipo"], "descanso")
 
     def test_descanso_suficiente_no_detectado(self):
         self._crear(
