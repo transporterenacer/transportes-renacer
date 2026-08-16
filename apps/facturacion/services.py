@@ -1,3 +1,5 @@
+import csv
+import io
 from decimal import Decimal
 
 from django.db import transaction
@@ -43,3 +45,51 @@ def total_abonado_operacion(operation):
 
 def saldo_operacion(operation):
     return total_facturado_operacion(operation) - total_abonado_operacion(operation)
+
+
+def generar_csv_facturacion(operation):
+    buffer = io.StringIO()
+    buffer.write("\ufeff")
+    writer = csv.writer(buffer, delimiter=";", lineterminator="\n")
+
+    writer.writerow(
+        [
+            "Fecha",
+            "Operación",
+            "Mula",
+            "Turno",
+            "Hora inicio",
+            "Hora final",
+            "Horas trabajadas",
+        ]
+    )
+    for br in operation.billing_records.select_related("shift__vehicle").order_by(
+        "fecha", "shift__fecha_inicio"
+    ):
+        if br.shift_id is None:
+            continue
+        shift = br.shift
+        writer.writerow(
+            [
+                br.fecha.strftime("%d/%m/%Y"),
+                operation.codigo,
+                shift.vehicle.placa,
+                shift.get_tipo_display(),
+                shift.fecha_inicio.strftime("%H:%M"),
+                shift.fecha_fin.strftime("%H:%M"),
+                f"{br.horas:.2f}",
+            ]
+        )
+
+    writer.writerow([])
+    writer.writerow(["Mula", "Horas totales"])
+    totales = {}
+    for br in operation.billing_records.select_related("shift__vehicle").filter(
+        shift__isnull=False
+    ):
+        placa = br.shift.vehicle.placa
+        totales[placa] = totales.get(placa, Decimal(0)) + br.horas
+    for placa in sorted(totales):
+        writer.writerow([placa, f"{totales[placa]:.2f}"])
+
+    return buffer.getvalue()
