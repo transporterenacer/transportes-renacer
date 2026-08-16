@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Panel de control{% endblock %}
+{% block content %}
+<p class="eyebrow">Transportes Renacer · Dashboard</p>
+<h1>Panel de control</h1>
+<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+
+<nav class="dashboard-nav">
+  <a href="{% url 'dashboard:vencimientos' %}">Vencimientos</a>
+  <a href="{% url 'dashboard:nomina' %}">Nómina</a>
+  <a href="{% url 'dashboard:operativo' %}">Operativo</a>
+  <a href="{% url 'dashboard:financiero' %}">Financiero</a>
+  <a href="{% url 'dashboard:historial' %}">Historial</a>
+</nav>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-value">{{ kpis.operaciones_activas }}</span><span class="kpi-label">Operaciones activas</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_en_operacion }}</span><span class="kpi-label">Mulas en operación</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_disponibles }}</span><span class="kpi-label">Mulas disponibles</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_en_taller }}</span><span class="kpi-label">Mulas en taller</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.horas_trabajadas }}</span><span class="kpi-label">Horas trabajadas</span></div>
+  <div class="kpi"><span class="kpi-value">{{ kpis.horas_facturables }}</span><span class="kpi-label">Horas facturables</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.valor_generado|intcomma }}</span><span class="kpi-label">Valor generado</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.abonos|intcomma }}</span><span class="kpi-label">Abonos</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.saldo_pendiente|intcomma }}</span><span class="kpi-label">Saldo pendiente</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.nomina_semanal_pendiente|intcomma }}</span><span class="kpi-label">Nómina pendiente</span></div>
+</div>
+
+<h2>Operaciones activas</h2>
+<table class="table">
+  <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th></tr></thead>
+  <tbody>
+  {% for op in operaciones_activas %}
+    <tr>
+      <td><a href="{% url 'operaciones:detalle' op.pk %}">{{ op.codigo }}</a></td>
+      <td>{{ op.buque }}</td>
+      <td>{{ op.generador_de_carga }}</td>
+      <td>{{ op.puerto }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No hay operaciones activas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
