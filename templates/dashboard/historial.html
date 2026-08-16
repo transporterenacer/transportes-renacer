@@ -1,8 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Historial{% endblock %}
+{% block title %}Historial de operaciones{% endblock %}
 {% block content %}
-<p class="eyebrow">Transportes Renacer · Dashboard</p>
-<h1>Historial</h1>
-<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+<p class="eyebrow">Historial</p>
+<h1>Historial de operaciones</h1>
+<table class="table">
+  <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th><th>Inicio</th><th>Fin real</th><th>Turnos</th><th>Horas</th><th>Estado</th><th>Acciones</th></tr></thead>
+  <tbody>
+  {% for op in operaciones %}
+    <tr>
+      <td>{{ op.codigo }}</td>
+      <td>{{ op.buque }}</td>
+      <td>{{ op.generador_de_carga }}</td>
+      <td>{{ op.puerto }}</td>
+      <td>{{ op.fecha_inicio|date:"d/m/Y" }}</td>
+      <td>{{ op.fecha_fin_real|date:"d/m/Y"|default:"—" }}</td>
+      <td>{{ op.num_turnos }}</td>
+      <td>{{ op.horas_totales|default:"0" }}</td>
+      <td>{{ op.get_estado_display }}</td>
+      <td>
+        <a href="{% url 'operaciones:detalle' op.pk %}">Detalle</a> ·
+        <a href="{% url 'dashboard:gantt' op.pk %}">Gantt</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="10">No hay operaciones finalizadas o canceladas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

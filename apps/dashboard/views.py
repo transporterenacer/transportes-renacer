@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -78,11 +79,20 @@ def dashboard_financiero(request):
 
 @login_required
 def dashboard_historial(request):
-    context = {
-        "operaciones": Operation.objects.filter(
+    operaciones = (
+        Operation.objects.filter(
             estado__in=[Operation.FINALIZADA, Operation.CANCELADA]
-        ).order_by("-fecha_inicio"),
-    }
+        )
+        .annotate(
+            num_turnos=Count("shifts", filter=Q(shifts__estado=Shift.REALIZADO)),
+            horas_totales=Sum(
+                "shifts__horas_trabajadas",
+                filter=Q(shifts__estado=Shift.REALIZADO),
+            ),
+        )
+        .order_by("-fecha_inicio")
+    )
+    context = {"operaciones": operaciones}
     return render(request, "dashboard/historial.html", context)
 
 
