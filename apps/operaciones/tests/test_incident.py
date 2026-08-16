@@ -100,17 +100,21 @@ class IncidentTests(TestCase):
             valor_estandar=self.op.valor_turno_dia,
             meta_horas=self.op.meta_horas,
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             registrar_turno(
                 operation=self.op,
                 vehicle=self.vehicle,
                 driver=self.driver,
                 fecha_inicio=timezone.datetime(2026, 8, 10, 16, 0),
-                fecha_fin=timezone.datetime(2026, 8, 10, 20, 0),
+                fecha_fin=timezone.datetime(2026, 8, 11, 6, 0),
                 tipo=Shift.DIA,
                 valor_estandar=self.op.valor_turno_dia,
                 meta_horas=self.op.meta_horas,
             )
+        self.assertIn(
+            "El vehículo ya tiene un turno en ese horario.",
+            str(ctx.exception),
+        )
 
     def test_turno_no_solapado_segundo_turno_valido(self):
         registrar_turno(
