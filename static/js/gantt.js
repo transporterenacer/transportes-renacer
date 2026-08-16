@@ -24,6 +24,94 @@
     return d.getTime();
   }
 
+  const ESTADOS_LABEL = {
+    programado: "Programado",
+    realizado: "Realizado",
+    cancelado: "Cancelado",
+    anulado: "Anulado",
+  };
+
+  function estadoTitulo(estado) {
+    return ESTADOS_LABEL[estado] || estado;
+  }
+
+  function fmtFechahora(iso) {
+    return new Date(iso).toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function cerrarDetalle() {
+    const overlay = document.querySelector(".gantt-overlay");
+    if (overlay) overlay.remove();
+  }
+
+  function mostrarDetalle(bloque) {
+    const b = bloque._data;
+    cerrarDetalle();
+    const overlay = document.createElement("div");
+    overlay.className = "gantt-overlay";
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) cerrarDetalle();
+    });
+
+    const panel = document.createElement("div");
+    panel.className = "gantt-detail " + estadoClase(b.cumplimiento, b.estado);
+
+    const head = document.createElement("div");
+    head.className = "gantt-detail-head";
+    const titulo = document.createElement("h3");
+    titulo.textContent = "Mula " + b.mula;
+    const cerrar = document.createElement("button");
+    cerrar.className = "gantt-detail-close";
+    cerrar.setAttribute("aria-label", "Cerrar");
+    cerrar.textContent = "×";
+    cerrar.addEventListener("click", cerrarDetalle);
+    head.appendChild(titulo);
+    head.appendChild(cerrar);
+
+    const fila = (etiqueta, valor) => {
+      const f = document.createElement("div");
+      f.className = "gantt-detail-fila";
+      const e = document.createElement("span");
+      e.className = "gantt-detail-etiqueta";
+      e.textContent = etiqueta;
+      const v = document.createElement("span");
+      v.textContent = valor;
+      f.appendChild(e);
+      f.appendChild(v);
+      return f;
+    };
+
+    panel.appendChild(head);
+    panel.appendChild(fila("Placa", b.mula));
+    panel.appendChild(fila("Inicio", fmtFechahora(b.inicio)));
+    panel.appendChild(fila("Fin", fmtFechahora(b.fin)));
+    panel.appendChild(
+      fila("Duración", b.horas.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " h")
+    );
+    panel.appendChild(fila("Cumplimiento", b.cumplimiento + "%"));
+    panel.appendChild(fila("Tipo", b.tipo));
+    panel.appendChild(fila("Estado", estadoTitulo(b.estado)));
+    panel.appendChild(fila("Novedad", b.novedad || "Sin novedades"));
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+  }
+
+  function agregarInteraccion() {
+    cont.addEventListener("click", function (e) {
+      const bloque = e.target.closest(".gantt-bloque");
+      if (bloque && bloque._data) mostrarDetalle(bloque);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") cerrarDetalle();
+    });
+  }
+
   function pintar(data) {
     const filas = data.filas;
     const todas = filas.flatMap((f) => f.bloques);
@@ -64,6 +152,7 @@
         if (aMarca(b.fin) < min || aMarca(b.inicio) > max) return;
         const block = document.createElement("div");
         block.className = "gantt-bloque " + estadoClase(b.cumplimiento, b.estado);
+        block._data = b;
         block.style.left = ((aMarca(b.inicio) - min) / rango * 100) + "%";
         block.style.width = (Math.max((aMarca(b.fin) - aMarca(b.inicio)) / rango * 100, 0.5)) + "%";
         const hora = (ts) => new Date(ts).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
@@ -81,7 +170,7 @@
       row.appendChild(track);
       cont.appendChild(row);
     });
-    document.getElementById("gantt-meta").textContent = "Meta: " + data.operation.meta_horas + " h";
+    document.getElementById("gantt-meta-val").textContent = "Meta: " + data.operation.meta_horas + " h";
   }
 
   function poblarMula(data) {
@@ -106,6 +195,8 @@
     poblarMula(data);
     pintar(data);
   }
+
+  agregarInteraccion();
 
   desdeInput.addEventListener("change", cargar);
   hastaInput.addEventListener("change", cargar);

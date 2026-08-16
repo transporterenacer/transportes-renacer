@@ -15,7 +15,7 @@
       <td>{{ op.fecha_inicio|date:"d/m/Y" }}</td>
       <td>{{ op.fecha_fin_real|date:"d/m/Y"|default:"—" }}</td>
       <td>{{ op.num_turnos }}</td>
-      <td>{{ op.horas_totales|default:"0" }}</td>
+      <td>{{ op.horas_totales|floatformat:2|default:"0" }}</td>
       <td>{{ op.get_estado_display }}</td>
       <td>
         <a href="{% url 'operaciones:detalle' op.pk %}">Detalle</a> ·

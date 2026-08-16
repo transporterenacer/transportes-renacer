@@ -4,7 +4,7 @@
 {% block content %}
 <p class="eyebrow">Control de operación</p>
 <h1>Operación <span>{{ operation.buque }}</span></h1>
-<p class="meta-update" id="gantt-meta"></p>
+<p class="meta-update" id="gantt-meta">Última actualización: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }} · <span id="gantt-meta-val"></span></p>
 <p class="gantt-filters">
   <label>Desde <input type="date" id="g-desde"></label>
   <label>Hasta <input type="date" id="g-hasta"></label>

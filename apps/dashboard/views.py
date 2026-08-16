@@ -106,7 +106,11 @@ def dashboard_historial(request):
 @login_required
 def dashboard_gantt(request, pk):
     operation = get_object_or_404(Operation, pk=pk)
-    return render(request, "dashboard/gantt.html", {"operation": operation})
+    context = {
+        "operation": operation,
+        "ultima_actualizacion": ultima_actualizacion(Operation, Shift, Incident),
+    }
+    return render(request, "dashboard/gantt.html", context)
 
 
 @login_required

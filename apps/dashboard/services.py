@@ -66,7 +66,9 @@ def kpis_nomina(desde, hasta):
     )
     horas = turnos.aggregate(total=Sum("horas_trabajadas"))["total"] or Decimal(0)
     abonos = (
-        DriverAdvance.objects.filter(fecha__gte=desde, fecha__lte=hasta)
+        DriverAdvance.objects.filter(
+            fecha__gte=desde, fecha__lte=hasta, payroll__isnull=True
+        )
         .aggregate(total=Sum("valor"))["total"]
         or Decimal(0)
     )
@@ -178,7 +180,7 @@ def kpis_operativo():
     return {
         "horas_por_operacion": horas_por_operacion,
         "horas_por_mula": horas_por_mula,
-        "cumplimiento_promedio": round(float(cumplimiento), 1) if cumplimiento else None,
+        "cumplimiento_promedio": round(float(cumplimiento), 1) if cumplimiento is not None else None,
         "horas_perdidas": horas_perdidas,
         "principales_novedades": principales_novedades,
         "operaciones_menor_cumplimiento": operaciones_menor_cumplimiento,
