@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils import timezone
 
@@ -23,6 +24,13 @@ class Vehicle(AuditMixin):
     anio = models.PositiveIntegerField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default=DISPONIBLE)
     observaciones = models.TextField(blank=True, default="")
+
+    documentos_doc = GenericRelation(
+        "documentos.Document",
+        content_type_field="entity_type",
+        object_id_field="entity_id",
+        related_query_name="vehicle_doc",
+    )
 
     class Meta:
         verbose_name = "Vehículo"

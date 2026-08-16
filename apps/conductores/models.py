@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 from apps.core.models import AuditMixin
@@ -19,6 +20,13 @@ class Driver(AuditMixin):
     telefono = models.CharField(max_length=30, blank=True, default="")
     estado = models.CharField(max_length=20, choices=ESTADOS, default=DISPONIBLE)
     observaciones = models.TextField(blank=True, default="")
+
+    documentos_doc = GenericRelation(
+        "documentos.Document",
+        content_type_field="entity_type",
+        object_id_field="entity_id",
+        related_query_name="driver_doc",
+    )
 
     class Meta:
         verbose_name = "Conductor"
