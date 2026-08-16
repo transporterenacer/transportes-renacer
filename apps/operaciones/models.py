@@ -1,7 +1,9 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
 from apps.core.models import AuditMixin
+from apps.flota.models import Vehicle
 
 
 class Operation(AuditMixin):
@@ -52,3 +54,19 @@ class Operation(AuditMixin):
             for shift in self.shifts.filter(estado="realizado")
         )
         return total
+
+
+class OperationVehicle(AuditMixin):
+    operation = models.ForeignKey(
+        Operation, on_delete=models.CASCADE, related_name="mulas"
+    )
+    vehicle = models.ForeignKey(
+        Vehicle, on_delete=models.CASCADE, related_name="operaciones"
+    )
+    fecha_asignacion = models.DateField(default=timezone.localdate)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Mula asignada"
+        verbose_name_plural = "Mulas asignadas"
+        unique_together = (("operation", "vehicle"),)
