@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.core.models import AuditMixin
+from apps.operaciones.models import Shift
 
 
 class Payroll(AuditMixin):
@@ -29,3 +30,20 @@ class Payroll(AuditMixin):
 
     def __str__(self):
         return self.numero
+
+
+class PayrollItem(AuditMixin):
+    payroll = models.ForeignKey(
+        Payroll, on_delete=models.CASCADE, related_name="items"
+    )
+    shift = models.ForeignKey(
+        Shift, on_delete=models.PROTECT, related_name="payroll_items", unique=True
+    )
+    valor = models.DecimalField(max_digits=14, decimal_places=0)
+
+    class Meta:
+        verbose_name = "Item de liquidación"
+        verbose_name_plural = "Items de liquidación"
+
+    def __str__(self):
+        return f"{self.payroll.numero} - {self.shift}"
