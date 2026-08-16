@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.catalogos",
     "apps.conductores",
     "apps.flota",
+    "apps.operaciones",
 ]
 
 MIDDLEWARE = [
