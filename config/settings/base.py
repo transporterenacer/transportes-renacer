@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.nomina",
     "apps.facturacion",
     "apps.dashboard",
+    "apps.documentos",
 ]
 
 MIDDLEWARE = [
