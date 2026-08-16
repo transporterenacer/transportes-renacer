@@ -1,8 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Gantt · {{ operation.codigo }}{% endblock %}
+{% load static %}
+{% block title %}Gantt {{ operation.codigo }}{% endblock %}
 {% block content %}
-<p class="eyebrow">Transportes Renacer · Dashboard</p>
-<h1>Gantt · {{ operation.codigo }}</h1>
-<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+<p class="eyebrow">Control de operación</p>
+<h1>Operación <span>{{ operation.buque }}</span></h1>
+<p class="meta-update" id="gantt-meta"></p>
+<p class="gantt-filters">
+  <label>Desde <input type="date" id="g-desde"></label>
+  <label>Hasta <input type="date" id="g-hasta"></label>
+  <label>Mula <select id="g-mula"><option value="">Todas</option></select></label>
+</p>
+<div class="gantt" id="gantt" data-url="{% url 'dashboard:gantt_datos' operation.pk %}"></div>
+<div class="gantt-legend">
+  <span class="legend-item"><span class="sw sw-ok"></span>Cumplimiento ≥ 90%</span>
+  <span class="legend-item"><span class="sw sw-warn"></span>70–89%</span>
+  <span class="legend-item"><span class="sw sw-bad"></span>&lt; 70%</span>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/gantt.js' %}"></script>
 {% endblock %}

@@ -183,3 +183,32 @@ def kpis_operativo():
         "principales_novedades": principales_novedades,
         "operaciones_menor_cumplimiento": operaciones_menor_cumplimiento,
     }
+
+
+def bloques_gantt(operation):
+    shifts = operation.shifts.select_related("vehicle", "incidente__categoria").order_by(
+        "fecha_inicio"
+    )
+    filas = {}
+    for shift in shifts:
+        filas.setdefault(shift.vehicle.placa, {"placa": shift.vehicle.placa, "bloques": []})
+        novedad = ""
+        if hasattr(shift, "incidente"):
+            novedad = shift.incidente.categoria.nombre
+        filas[shift.vehicle.placa]["bloques"].append(
+            {
+                "id": shift.pk,
+                "inicio": shift.fecha_inicio.isoformat(),
+                "fin": shift.fecha_fin.isoformat(),
+                "horas": float(shift.horas_trabajadas),
+                "cumplimiento": float(shift.cumplimiento_pct),
+                "tipo": shift.get_tipo_display(),
+                "estado": shift.estado,
+                "novedad": novedad,
+                "mula": shift.vehicle.placa,
+            }
+        )
+    return [
+        {"placa": placa, "bloques": sorted(f["bloques"], key=lambda b: b["inicio"])}
+        for placa, f in sorted(filas.items())
+    ]

@@ -4,7 +4,14 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from apps.dashboard.services import kpis_financiero, kpis_inicio, kpis_nomina, kpis_operativo, ultima_actualizacion
+from apps.dashboard.services import (
+    bloques_gantt,
+    kpis_financiero,
+    kpis_inicio,
+    kpis_nomina,
+    kpis_operativo,
+    ultima_actualizacion,
+)
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle, VehicleDocument
 from apps.flota.services import alertas_vencimiento
@@ -104,4 +111,19 @@ def dashboard_gantt(request, pk):
 
 @login_required
 def gantt_datos(request, pk):
-    return JsonResponse({})
+    operation = get_object_or_404(Operation, pk=pk)
+    data = {
+        "operation": {
+            "codigo": operation.codigo,
+            "buque": operation.buque,
+            "meta_horas": float(operation.meta_horas),
+            "fecha_inicio": operation.fecha_inicio.isoformat(),
+            "fecha_fin_estimada": (
+                operation.fecha_fin_estimada.isoformat()
+                if operation.fecha_fin_estimada
+                else None
+            ),
+        },
+        "filas": bloques_gantt(operation),
+    }
+    return JsonResponse(data)

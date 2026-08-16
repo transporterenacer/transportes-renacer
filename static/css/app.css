@@ -119,3 +119,28 @@ h1 { font-size: 24px; font-weight: 600; margin: 0 0 20px; }
 @media (max-width: 720px) {
   .main { padding: 20px 14px 60px; }
 }
+
+.gantt { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.gantt-cab, .gantt-fila { display: grid; grid-template-columns: 120px 1fr; }
+.gantt-cab { border-bottom: 1px solid var(--line); background: var(--surface-hover); }
+.gantt-etiqueta { padding: 8px 10px; font-family: "IBM Plex Mono", monospace; font-size: 12px; border-right: 1px solid var(--line); }
+.gantt-regla { position: relative; display: flex; overflow: hidden; }
+.gantt-regla span { flex: 1 0 0; padding: 8px 2px; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ink-faint); text-align: center; border-left: 1px solid var(--line); }
+.gantt-fila { border-bottom: 1px solid var(--line); }
+.gantt-track { position: relative; min-height: 46px; }
+.gantt-bloque { position: absolute; top: 8px; bottom: 8px; border-radius: 4px; padding: 4px 6px; font-family: "IBM Plex Mono", monospace; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-bloque.ok { background: var(--ok-tint); color: var(--ok-ink); border: 1px solid var(--ok); }
+.gantt-bloque.warn { background: var(--warn-tint); color: var(--warn-ink); border: 1px dashed var(--warn); }
+.gantt-bloque.bad { background: var(--danger-tint); color: var(--danger-ink); border: 2px solid var(--danger); }
+.gantt-ahora { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--secondary); z-index: 5; }
+.gantt-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 12px; font-size: 12px; color: var(--ink-dim); }
+.gantt-filters label { display: flex; align-items: center; gap: 6px; }
+.gantt-filters input[type="date"], .gantt-filters select {
+  padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: var(--surface);
+}
+.gantt-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--ink-dim); }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sw-ok { background: var(--ok-tint); border: 1px solid var(--ok); }
+.sw-warn { background: var(--warn-tint); border: 1px dashed var(--warn); }
+.sw-bad { background: var(--danger-tint); border: 2px solid var(--danger); }
