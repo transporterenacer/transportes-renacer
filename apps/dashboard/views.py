@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from apps.dashboard.services import kpis_inicio, kpis_nomina, kpis_operativo, ultima_actualizacion
+from apps.dashboard.services import kpis_financiero, kpis_inicio, kpis_nomina, kpis_operativo, ultima_actualizacion
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle, VehicleDocument
 from apps.flota.services import alertas_vencimiento
@@ -70,6 +70,7 @@ def dashboard_operativo(request):
 @login_required
 def dashboard_financiero(request):
     context = {
+        "kpis": kpis_financiero(),
         "ultima_actualizacion": ultima_actualizacion(BillingRecord, ClientPayment),
     }
     return render(request, "dashboard/financiero.html", context)

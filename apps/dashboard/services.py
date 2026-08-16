@@ -95,6 +95,52 @@ def kpis_nomina(desde, hasta):
     }
 
 
+def kpis_financiero():
+    valor_generado = (
+        BillingRecord.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
+    )
+    abonos = (
+        ClientPayment.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
+    )
+
+    por_operacion = []
+    for op in Operation.objects.filter(
+        billing_records__isnull=False
+    ).distinct().prefetch_related("billing_records", "client_payments"):
+        facturado = (
+            op.billing_records.aggregate(total=Sum("valor"))["total"] or Decimal(0)
+        )
+        abonado = (
+            op.client_payments.aggregate(total=Sum("valor"))["total"] or Decimal(0)
+        )
+        por_operacion.append(
+            {
+                "codigo": op.codigo,
+                "pk": op.pk,
+                "facturado": facturado,
+                "abonado": abonado,
+                "saldo": facturado - abonado,
+            }
+        )
+    por_operacion.sort(key=lambda x: x["saldo"], reverse=True)
+    mayor_saldo = por_operacion[:5]
+
+    evolucion = list(
+        BillingRecord.objects.values("fecha")
+        .annotate(total=Sum("valor"))
+        .order_by("fecha")
+    )
+
+    return {
+        "valor_generado": valor_generado,
+        "abonos": abonos,
+        "saldo": valor_generado - abonos,
+        "por_operacion": por_operacion,
+        "mayor_saldo": mayor_saldo,
+        "evolucion": evolucion,
+    }
+
+
 def kpis_operativo():
     realizados = Shift.objects.filter(estado=Shift.REALIZADO)
 

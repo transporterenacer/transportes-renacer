@@ -1,8 +1,56 @@
 {% extends "base.html" %}
+{% load static %}
+{% load humanize %}
 {% block title %}Financiero{% endblock %}
 {% block content %}
 <p class="eyebrow">Transportes Renacer · Dashboard</p>
 <h1>Financiero</h1>
 <p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
-<p>Pendiente de completar.</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-value">${{ kpis.valor_generado|intcomma }}</span><span class="kpi-label">Valor generado</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.abonos|intcomma }}</span><span class="kpi-label">Abonos recibidos</span></div>
+  <div class="kpi"><span class="kpi-value">${{ kpis.saldo|intcomma }}</span><span class="kpi-label">Saldo pendiente</span></div>
+</div>
+
+<h2>Evolución de facturación</h2>
+<div class="chart-wrap">
+  <canvas id="evolucion-chart" height="120"></canvas>
+</div>
+
+<h2>Valor por operación</h2>
+<table class="table">
+  <thead><tr><th>Operación</th><th>Facturado</th><th>Abonado</th><th>Saldo</th></tr></thead>
+  <tbody>
+  {% for row in kpis.por_operacion %}
+    <tr>
+      <td><a href="{% url 'operaciones:detalle' row.pk %}">{{ row.codigo }}</a></td>
+      <td>${{ row.facturado|intcomma }}</td>
+      <td>${{ row.abonado|intcomma }}</td>
+      <td><strong>${{ row.saldo|intcomma }}</strong></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">Sin facturación registrada.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+  const fechas = [{% for e in kpis.evolucion %}"{{ e.fecha|date:'d/m' }}",{% endfor %}];
+  const totales = [{% for e in kpis.evolucion %}{{ e.total }},{% endfor %}];
+  const ctx = document.getElementById("evolucion-chart");
+  if (ctx && window.Chart) {
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: fechas,
+        datasets: [{ label: "Facturación", data: totales, borderColor: "#23B5D3", backgroundColor: "rgba(35,181,211,0.15)", tension: 0.3 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
+</script>
 {% endblock %}
