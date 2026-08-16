@@ -1,7 +1,10 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
+from apps.conductores.models import Driver
 from apps.core.models import AuditMixin
 from apps.flota.models import Vehicle
 
@@ -51,9 +54,9 @@ class Operation(AuditMixin):
     def total_horas(self):
         total = sum(
             shift.horas_trabajadas
-            for shift in self.shifts.filter(estado="realizado")
+            for shift in self.shifts.filter(estado=Shift.REALIZADO)
         )
-        return total
+        return Decimal(total)
 
 
 class OperationVehicle(AuditMixin):
@@ -70,3 +73,71 @@ class OperationVehicle(AuditMixin):
         verbose_name = "Mula asignada"
         verbose_name_plural = "Mulas asignadas"
         unique_together = (("operation", "vehicle"),)
+
+
+class Shift(AuditMixin):
+    DIA = "dia"
+    NOCHE = "noche"
+
+    TIPOS = [
+        (DIA, "Día"),
+        (NOCHE, "Noche"),
+    ]
+
+    PROGRAMADO = "programado"
+    REALIZADO = "realizado"
+    CANCELADO = "cancelado"
+    ANULADO = "anulado"
+
+    ESTADOS = [
+        (PROGRAMADO, "Programado"),
+        (REALIZADO, "Realizado"),
+        (CANCELADO, "Cancelado"),
+        (ANULADO, "Anulado"),
+    ]
+
+    operation = models.ForeignKey(
+        Operation, on_delete=models.PROTECT, related_name="shifts"
+    )
+    vehicle = models.ForeignKey(
+        Vehicle, on_delete=models.PROTECT, related_name="shifts"
+    )
+    driver = models.ForeignKey(
+        Driver, on_delete=models.PROTECT, related_name="shifts"
+    )
+    fecha_inicio = models.DateTimeField()
+    fecha_fin = models.DateTimeField()
+    horas_trabajadas = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    meta_horas = models.DecimalField(max_digits=4, decimal_places=1)
+    cumplimiento_pct = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    tipo = models.CharField(max_length=10, choices=TIPOS)
+    valor_estandar = models.DecimalField(max_digits=14, decimal_places=0)
+    valor_pagado = models.DecimalField(max_digits=14, decimal_places=0, default=0)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=PROGRAMADO)
+    motivo_cancelacion = models.TextField(blank=True, default="")
+    observaciones = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Turno"
+        verbose_name_plural = "Turnos"
+        ordering = ["fecha_inicio"]
+
+    def __str__(self):
+        return f"{self.vehicle.placa} {self.fecha_inicio:%d/%m %H:%M}"
+
+    def save(self, *args, **kwargs):
+        delta = self.fecha_fin - self.fecha_inicio
+        self.horas_trabajadas = round(delta.total_seconds() / 3600, 2)
+        if self.meta_horas:
+            self.cumplimiento_pct = round(
+                float(self.horas_trabajadas) / float(self.meta_horas) * 100, 1
+            )
+        if self.estado == self.REALIZADO:
+            self.valor_pagado = self.valor_estandar
+        else:
+            self.valor_pagado = 0
+        super().save(*args, **kwargs)
+
+    @property
+    def valor_es_pagable(self):
+        return self.estado == self.REALIZADO

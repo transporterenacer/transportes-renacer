@@ -2,6 +2,7 @@ from datetime import date
 
 from django.db import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
 from apps.operaciones.models import Operation
@@ -42,3 +43,24 @@ class OperationTests(TestCase):
         self.assertTrue(op.estado_activa)
         op2 = self._crear(codigo="OP-002", estado=Operation.PROGRAMADA)
         self.assertFalse(op2.estado_activa)
+
+    def test_total_horas_suma_shifts_realizados(self):
+        from apps.conductores.models import Driver
+        from apps.flota.models import Vehicle
+        from apps.operaciones.models import Shift
+
+        op = self._crear(estado=Operation.ACTIVA)
+        vehicle = Vehicle.objects.create(placa="ABC123")
+        driver = Driver.objects.create(nombre="Juan Pérez", documento="123")
+        Shift.objects.create(
+            operation=op,
+            vehicle=vehicle,
+            driver=driver,
+            fecha_inicio=timezone.make_aware(timezone.datetime(2026, 8, 10, 6, 0)),
+            fecha_fin=timezone.make_aware(timezone.datetime(2026, 8, 10, 17, 0)),
+            tipo=Shift.DIA,
+            meta_horas=op.meta_horas,
+            valor_estandar=op.valor_turno_dia,
+            estado=Shift.REALIZADO,
+        )
+        self.assertEqual(op.total_horas, 11.0)
