@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Incident, OperationVehicle, Shift
+from apps.operaciones.models import Incident, Operation, OperationVehicle, Shift
 
 DESCANSO_MINIMO_HORAS = 8
 
@@ -32,6 +32,28 @@ def liberar_mulas(operation):
         if not en_otra_activa:
             relation.vehicle.estado = Vehicle.DISPONIBLE
             relation.vehicle.save(update_fields=["estado"])
+
+
+def finalizar_operacion(operation, usuario=None):
+    if operation.estado in (Operation.FINALIZADA, Operation.CANCELADA):
+        return
+    operation.estado = Operation.FINALIZADA
+    operation.fecha_fin_real = timezone.localdate()
+    if usuario is not None:
+        operation.updated_by = usuario
+    operation.save()
+    liberar_mulas(operation)
+
+
+def cancelar_operacion(operation, usuario=None):
+    if operation.estado in (Operation.FINALIZADA, Operation.CANCELADA):
+        return
+    operation.estado = Operation.CANCELADA
+    operation.fecha_fin_real = timezone.localdate()
+    if usuario is not None:
+        operation.updated_by = usuario
+    operation.save()
+    liberar_mulas(operation)
 
 
 def registrar_turno(
