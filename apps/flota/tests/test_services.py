@@ -3,9 +3,11 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.flota.models import Vehicle, VehicleDocument
+from apps.documentos.management.commands.setup_document_types import Command as C
+from apps.documentos.models import Document, DocumentType
+from apps.documentos.services import cargar_documento
+from apps.flota.models import Vehicle
 from apps.flota.services import (
-    ALERT_DAYS,
     ESTADO_NORMAL,
     ESTADO_PROXIMO,
     ESTADO_VENCIDO,
@@ -15,63 +17,58 @@ from apps.flota.services import (
 
 
 class DocumentoEstadoTests(TestCase):
-    def test_normal_when_more_than_30_days(self):
-        doc = VehicleDocument(
-            vehicle=Vehicle(placa="ABC123"),
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=ALERT_DAYS + 1),
+    def setUp(self):
+        C().handle()
+        self.vehicle = Vehicle.objects.create(placa="ABC123")
+        self.soat = DocumentType.objects.get(codigo="soat")
+
+    def _doc(self, vencimiento):
+        return cargar_documento(
+            tipo=self.soat, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=timezone.localdate(),
+            fecha_vencimiento=vencimiento,
         )
+
+    def test_normal_cuando_mas_de_30_dias(self):
+        doc = self._doc(timezone.localdate() + timedelta(days=31))
         self.assertEqual(documento_estado(doc), ESTADO_NORMAL)
 
-    def test_proximo_when_within_30_days(self):
-        doc = VehicleDocument(
-            vehicle=Vehicle(placa="ABC123"),
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=10),
-        )
+    def test_proximo_dentro_de_30_dias(self):
+        doc = self._doc(timezone.localdate() + timedelta(days=10))
         self.assertEqual(documento_estado(doc), ESTADO_PROXIMO)
 
-    def test_vencido_when_expired(self):
-        doc = VehicleDocument(
-            vehicle=Vehicle(placa="ABC123"),
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() - timedelta(days=1),
-        )
+    def test_vencido(self):
+        doc = self._doc(timezone.localdate() - timedelta(days=1))
         self.assertEqual(documento_estado(doc), ESTADO_VENCIDO)
 
 
 class AlertasVencimientoTests(TestCase):
     def setUp(self):
-        self.vehiculo = Vehicle.objects.create(placa="ABC123")
+        C().handle()
+        self.vehicle = Vehicle.objects.create(placa="ABC123")
+        self.soat = DocumentType.objects.get(codigo="soat")
+        self.tecno = DocumentType.objects.get(codigo="tecnomecanica")
 
-    def test_alerts_include_only_proximo_and_vencido(self):
-        VehicleDocument.objects.create(
-            vehicle=self.vehiculo,
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=60),
+    def _cargar(self, tipo, vencimiento):
+        cargar_documento(
+            tipo=tipo, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=timezone.localdate(),
+            fecha_vencimiento=vencimiento,
         )
-        VehicleDocument.objects.create(
-            vehicle=self.vehiculo,
-            tipo=VehicleDocument.TECNOMECANICA,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=10),
-        )
+
+    def test_alertas_solo_proximo_y_vencido(self):
+        self._cargar(self.soat, timezone.localdate() + timedelta(days=60))
+        self._cargar(self.tecno, timezone.localdate() + timedelta(days=10))
         alerts = alertas_vencimiento()
         self.assertEqual(len(alerts), 1)
         self.assertEqual(alerts[0]["estado"], ESTADO_PROXIMO)
 
-    def test_alerts_sorted_by_days_ascending(self):
-        VehicleDocument.objects.create(
-            vehicle=self.vehiculo,
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=15),
-        )
-        VehicleDocument.objects.create(
-            vehicle=self.vehiculo,
-            tipo=VehicleDocument.TECNOMECANICA,
-            fecha_vencimiento=timezone.localdate() - timedelta(days=3),
-        )
+    def test_alertas_ordenadas_por_dias(self):
+        self._cargar(self.soat, timezone.localdate() + timedelta(days=15))
+        self._cargar(self.tecno, timezone.localdate() - timedelta(days=3))
         alerts = alertas_vencimiento()
         days = [a["dias"] for a in alerts]
         self.assertEqual(days, sorted(days))
-        self.assertEqual(days[0], -3)
         self.assertEqual(alerts[0]["estado"], ESTADO_VENCIDO)

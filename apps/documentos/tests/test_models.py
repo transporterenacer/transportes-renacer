@@ -13,8 +13,10 @@ from apps.flota.models import Vehicle
 class DocumentTypeTests(TestCase):
     def test_creation_y_str(self):
         ct = content_type_vehicle()
-        tipo = DocumentType.objects.create(nombre="SOAT", codigo="soat", entity_type=ct)
-        self.assertEqual(str(tipo), "SOAT")
+        tipo = DocumentType.objects.create(
+            nombre="Permiso especial", codigo="permiso_especial", entity_type=ct
+        )
+        self.assertEqual(str(tipo), "Permiso especial")
         self.assertTrue(tipo.activo)
         self.assertFalse(tipo.requires_expiration)
 
@@ -22,9 +24,13 @@ class DocumentTypeTests(TestCase):
         from django.db import IntegrityError
 
         ct = content_type_vehicle()
-        DocumentType.objects.create(nombre="SOAT", codigo="soat", entity_type=ct)
+        DocumentType.objects.create(
+            nombre="Permiso especial", codigo="permiso_especial", entity_type=ct
+        )
         with self.assertRaises(IntegrityError):
-            DocumentType.objects.create(nombre="SOAT 2", codigo="soat", entity_type=ct)
+            DocumentType.objects.create(
+                nombre="Permiso especial 2", codigo="permiso_especial", entity_type=ct
+            )
 
     def test_content_type_vehicle_apunta_a_vehicle(self):
         self.assertEqual(content_type_vehicle().model_class(), Vehicle)

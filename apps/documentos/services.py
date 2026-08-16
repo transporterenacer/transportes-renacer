@@ -170,7 +170,7 @@ def alertas_vencimiento_documentos():
         Document.objects.filter(
             entity_type=content_type_vehicle(), estado=Document.VIGENTE
         )
-        .select_related("tipo", "entity")
+        .select_related("tipo", "entity_type")
         .exclude(fecha_vencimiento__isnull=True)
     ):
         estado = estado_documento(doc)

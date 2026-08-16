@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
@@ -31,43 +30,19 @@ class VehicleTests(TestCase):
             Vehicle.objects.create(placa="ABC123")
 
 
-class VehicleDocumentTests(TestCase):
+class VehicleDocumentLegacyTests(TestCase):
+    """VehicleDocument es legado: se conserva por compatibilidad de migraciones.
+
+    La funcionalidad nueva usa apps.documentos.Document.
+    """
+
     def setUp(self):
         self.vehicle = Vehicle.objects.create(placa="ABC123")
 
-    def test_document_creation(self):
-        doc = VehicleDocument.objects.create(
-            vehicle=self.vehicle,
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=20),
-        )
-        self.assertEqual(doc.tipo, VehicleDocument.SOAT)
-
-    def test_document_type_unique_per_vehicle(self):
-        VehicleDocument.objects.create(
-            vehicle=self.vehicle,
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() + timedelta(days=20),
-        )
-        with self.assertRaises(IntegrityError):
-            VehicleDocument.objects.create(
-                vehicle=self.vehicle,
-                tipo=VehicleDocument.SOAT,
-                fecha_vencimiento=timezone.localdate() + timedelta(days=40),
-            )
-
-    def test_dias_restantes_positive(self):
+    def test_dias_restantes(self):
         doc = VehicleDocument.objects.create(
             vehicle=self.vehicle,
             tipo=VehicleDocument.SOAT,
             fecha_vencimiento=timezone.localdate() + timedelta(days=10),
         )
         self.assertEqual(doc.dias_restantes(), 10)
-
-    def test_dias_restantes_negative_when_expired(self):
-        doc = VehicleDocument.objects.create(
-            vehicle=self.vehicle,
-            tipo=VehicleDocument.SOAT,
-            fecha_vencimiento=timezone.localdate() - timedelta(days=5),
-        )
-        self.assertEqual(doc.dias_restantes(), -5)

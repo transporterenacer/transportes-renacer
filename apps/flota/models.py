@@ -46,6 +46,12 @@ class Vehicle(AuditMixin):
 
 
 class VehicleDocument(AuditMixin):
+    """Legado: los documentos de vehículo ahora viven en apps.documentos.Document.
+
+    Se conserva únicamente por historial y compatibilidad de migraciones. No
+    usar para funcionalidad nueva; usar Document vía apps.documentos.services.
+    """
+
     SOAT = "soat"
     TECNOMECANICA = "tecnomecanica"
 
