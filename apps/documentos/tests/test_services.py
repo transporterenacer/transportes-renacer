@@ -107,6 +107,17 @@ class FaltantesTests(TestCase):
         self.assertTrue(cedula_drivers)
 
 
+class IndicadorAlmacenamientoTests(TestCase):
+    def test_indicador_almacenamiento(self):
+        from apps.documentos.services import indicador_almacenamiento
+
+        data = indicador_almacenamiento()
+        self.assertIn("usado", data)
+        self.assertIn("limite", data)
+        self.assertIn("porcentaje", data)
+        self.assertGreaterEqual(data["porcentaje"], 0.0)
+
+
 class DesactivarConductorTests(TestCase):
     def setUp(self):
         C().handle()

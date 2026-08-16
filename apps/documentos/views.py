@@ -15,6 +15,7 @@ from apps.documentos.services import (
     documentos_faltantes,
     documentos_vigentes_entidad,
     estado_documento,
+    indicador_almacenamiento,
 )
 from apps.documentos.storage import get_storage_backend
 from apps.conductores.models import Driver
@@ -47,6 +48,7 @@ def panel(request):
         },
         "alertas": alertas,
         "faltantes": faltantes,
+        "indicador_almacenamiento": indicador_almacenamiento(),
     }
     return render(request, "documentos/panel.html", context)
 

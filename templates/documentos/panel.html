@@ -11,6 +11,24 @@
   <div class="kpi"><span class="kpi-value">{{ indicadores.faltantes }}</span><span class="kpi-label">Faltantes</span></div>
 </div>
 
+<h2>Almacenamiento</h2>
+{% if indicador_almacenamiento.limite %}
+<div style="max-width: 480px;">
+  <p style="margin: 0 0 6px;">{{ indicador_almacenamiento.texto }} <span class="tag">{{ indicador_almacenamiento.porcentaje }}%</span></p>
+  <div style="background: #e5e7eb; border-radius: 6px; height: 14px; overflow: hidden;">
+    {% if indicador_almacenamiento.porcentaje >= 90 %}
+      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #dc2626; height: 100%;"></div>
+    {% elif indicador_almacenamiento.porcentaje >= 70 %}
+      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #d97706; height: 100%;"></div>
+    {% else %}
+      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #16a34a; height: 100%;"></div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<p>Almacenamiento no configurado (DOCUMENT_STORAGE_LIMIT = 0).</p>
+{% endif %}
+
 <h2>Alertas de vencimiento</h2>
 <table class="table">
   <thead><tr><th>Vehículo</th><th>Documento</th><th>Vencimiento</th><th>Días</th><th>Estado</th></tr></thead>

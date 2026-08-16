@@ -3,6 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.documentos.models import (
@@ -224,6 +225,32 @@ def documentos_faltantes():
                     {"entidad": driver, "tipo": tipo, "es_personal": True}
                 )
     return faltantes
+
+
+def indicador_almacenamiento():
+    usado = (
+        Document.objects.filter(estado=Document.VIGENTE, tamano__gt=0)
+        .aggregate(total=Sum("tamano"))["total"]
+        or 0
+    )
+    limite = settings.DOCUMENT_STORAGE_LIMIT
+    porcentaje = round(usado / limite * 100, 1) if limite else 0.0
+    return {
+        "usado": usado,
+        "limite": limite,
+        "porcentaje": porcentaje,
+        "texto": f"{_fmt_bytes(usado)} / {_fmt_bytes(limite)}",
+    }
+
+
+def _fmt_bytes(b):
+    if b >= 1073741824:
+        return f"{b / 1073741824:.1f} GB"
+    if b >= 1048576:
+        return f"{b / 1048576:.1f} MB"
+    if b >= 1024:
+        return f"{b / 1024:.0f} KB"
+    return f"{b} B"
 
 
 def desactivar_conductor(driver, usuario=None):
