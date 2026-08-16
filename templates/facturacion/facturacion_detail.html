@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Facturación {{ operation.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Facturación</p>
+<h1>{{ operation.buque }}</h1>
+<p><strong>{{ operation.codigo }}</strong> · Tarifa: ${{ operation.tarifa_hora }}/h</p>
+
+<form method="post" action="{% url 'facturacion:generar' operation.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary">Generar facturación desde turnos</button>
+</form>
+<a class="btn" href="{% url 'facturacion:csv' operation.pk %}">Descargar CSV</a>
+
+<h2>Totales</h2>
+<table class="table">
+  <tbody>
+    <tr><th>Facturado</th><td>${{ facturado }}</td></tr>
+    <tr><th>Abonado</th><td>${{ abonado }}</td></tr>
+    <tr><th>Saldo</th><td><strong>${{ saldo }}</strong></td></tr>
+  </tbody>
+</table>
+
+<h2>Registros de facturación</h2>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Mula</th><th>Turno</th><th>Horas</th><th>Valor</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for br in operation.billing_records.all %}
+    <tr>
+      <td>{{ br.fecha|date:"d/m/Y" }}</td>
+      <td>{{ br.shift.vehicle.placa|default:"—" }}</td>
+      <td>{{ br.shift.get_tipo_display|default:"—" }}</td>
+      <td>{{ br.horas }}</td>
+      <td>${{ br.valor }}</td>
+      <td><span class="tag">{{ br.get_estado_display }}</span></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6">Sin registros de facturación. Genere la facturación desde los turnos realizados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Abonos del generador de carga</h2>
+<form method="post" action="{% url 'facturacion:abono' operation.pk %}" class="card">
+  {% csrf_token %}
+  {{ abono_form.as_p }}
+  <button type="submit" class="btn btn-primary">Registrar abono</button>
+</form>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Valor</th><th>Observaciones</th></tr></thead>
+  <tbody>
+  {% for abono in operation.client_payments.all %}
+    <tr>
+      <td>{{ abono.fecha|date:"d/m/Y" }}</td>
+      <td>${{ abono.valor }}</td>
+      <td>{{ abono.observaciones }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">Sin abonos registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
