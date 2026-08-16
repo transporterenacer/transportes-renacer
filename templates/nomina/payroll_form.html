@@ -6,6 +6,7 @@
 <form method="post" class="card">
   {% csrf_token %}
   {{ form.as_p }}
+  {{ form.non_field_errors }}
   <button type="submit" class="btn btn-primary">Liquidar periodo</button>
 </form>
 {% endblock %}

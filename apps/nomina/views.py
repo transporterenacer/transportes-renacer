@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.nomina.forms import DriverAdvanceForm, PeriodoForm
@@ -21,12 +22,15 @@ def payroll_nueva(request):
     if request.method == "POST":
         form = PeriodoForm(request.POST)
         if form.is_valid():
-            payroll = crear_liquidacion(
-                form.cleaned_data["periodo_inicio"],
-                form.cleaned_data["periodo_fin"],
-                usuario=request.user,
-            )
-            return redirect("nomina:detalle", pk=payroll.pk)
+            try:
+                payroll = crear_liquidacion(
+                    form.cleaned_data["periodo_inicio"],
+                    form.cleaned_data["periodo_fin"],
+                    usuario=request.user,
+                )
+                return redirect("nomina:detalle", pk=payroll.pk)
+            except ValidationError as exc:
+                form.add_error(None, exc.message)
     else:
         form = PeriodoForm()
     return render(request, "nomina/payroll_form.html", {"form": form})

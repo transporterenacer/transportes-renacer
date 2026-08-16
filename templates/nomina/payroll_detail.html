@@ -28,10 +28,12 @@
   {% endfor %}
   </tbody>
 </table>
+{% if payroll.estado != 'pagado' %}
 <h2>Registrar abono a conductor</h2>
 <form method="post" action="{% url 'nomina:abono_nuevo' payroll.pk %}" class="card">
   {% csrf_token %}
   {{ abono_form.as_p }}
   <button type="submit" class="btn btn-primary">Registrar abono</button>
 </form>
+{% endif %}
 {% endblock %}

@@ -58,6 +58,17 @@ class NominaViewsTests(TestCase):
         self.assertEqual(Payroll.objects.count(), 1)
         self.assertEqual(Payroll.objects.first().numero, "NOM-2026-001")
 
+    def test_periodo_sin_turnos_no_rompe_http_500(self):
+        response = self.client.post(
+            reverse("nomina:nueva"),
+            {"periodo_inicio": "01/09/2026", "periodo_fin": "07/09/2026"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, "No hay turnos pendientes de pago en el periodo seleccionado."
+        )
+        self.assertEqual(Payroll.objects.count(), 0)
+
     def test_detalle_muestra_conductor_y_neto(self):
         payroll = crear_liquidacion(date(2026, 8, 10), date(2026, 8, 16))
         response = self.client.get(reverse("nomina:detalle", args=[payroll.pk]))

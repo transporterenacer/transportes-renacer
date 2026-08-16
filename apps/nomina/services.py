@@ -1,3 +1,4 @@
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -23,11 +24,13 @@ def generar_numero_liquidacion(anio):
 
 
 def turnos_pendientes_pago(desde, hasta):
+    desde_dt = timezone.make_aware(datetime.combine(desde, time.min))
+    hasta_dt = timezone.make_aware(datetime.combine(hasta + timedelta(days=1), time.min))
     return (
         Shift.objects.filter(
             estado=Shift.REALIZADO,
-            fecha_inicio__date__gte=desde,
-            fecha_inicio__date__lte=hasta,
+            fecha_inicio__gte=desde_dt,
+            fecha_inicio__lt=hasta_dt,
             payroll_items__isnull=True,
         )
         .select_related("driver", "vehicle", "operation")
@@ -92,6 +95,8 @@ def resumen_liquidacion(payroll):
 
 
 def marcar_pagada(payroll, usuario=None):
+    if payroll.estado == Payroll.PAGADO:
+        return
     payroll.estado = Payroll.PAGADO
     payroll.fecha_pago = timezone.localdate()
     if usuario:
