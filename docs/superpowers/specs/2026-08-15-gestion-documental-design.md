@@ -8,7 +8,7 @@
 
 ## 1. Resumen
 
-Módulo de **gestión documental digital** para vehículos (mulas) y conductores de Transportes Renacer. Cada entidad tendrá un expediente documental en Supabase Storage (bucket privado) con metadatos en PostgreSQL (Supabase). Soporta carga, consulta, descarga, compartición temporal y reemplazo seguro de documentos, con auditoría y control del almacenamiento.
+Módulo de **gestión documental digital** para vehículos (mulas) y conductores de Transportes Renacer. Cada entidad tendrá un expediente documental en Supabase Storage (bucket privado) con metadatos en PostgreSQL (Supabase). Soporta carga, consulta (ver en el navegador), descarga y reemplazo seguro de documentos, con auditoría y control del almacenamiento. Sin compartición externa con enlaces temporales.
 
 **Regla de integración:** no modifica ni rediseña los módulos existentes (operaciones, flota, conductores, turnos, nómina, facturación). Solo agrega funcionalidad documental. Única excepción acordada: el modelo `VehicleDocument` (SOAT/tecnomecánica) de `apps.flota` **migra** al nuevo modelo genérico `Document`, y `alertas_vencimiento()` pasa a leer del nuevo modelo. Los registros existentes se migran por data migration.
 
@@ -24,7 +24,7 @@ Módulo de **gestión documental digital** para vehículos (mulas) y conductores
 | Referencia polimórfica | `GenericForeignKey` (contenttypes de Django) |
 | Cliente Supabase | `supabase-py` v2 (`supabase` en requirements), envuelto en backend intercambiable |
 | Backend de storage | `LocalStorage` (dev/tests, carpeta `media/documents/`) · `SupabaseStorage` (prod). Selección por `settings.DOCUMENT_STORAGE_BACKEND` |
-| Signed URLs | Generadas por el backend con expiración configurable por `.env` (ver/descargar 5 min, compartir 24 h). Nunca almacenadas en BD |
+| Signed URLs | Generadas por el backend con expiración configurable por `.env` (ver/descargar 5 min). Nunca almacenadas en BD. **No hay compartición externa con enlace temporal**: "Ver" abre el PDF en el navegador (el lector nativo permite descargar) y "Descargar" genera una URL temporal breve para el usuario autenticado |
 | Frontend | Templates Django + HTMX + CSS puro con tokens (patrón existente), JS vanilla mínimo para copiar enlace |
 
 **No se usa:** buckets públicos, URLs públicas permanentes, OCR/IA/extracción automática (fase futura), almacenamiento de binarios en PostgreSQL.
@@ -106,7 +106,7 @@ Hereda de `apps.core.models.AuditMixin`. **Nunca se elimina.**
 | Campo | Tipo |
 |---|---|
 | `usuario` | FK auth.User (SET_NULL, null) |
-| `accion` | CharField(20): `carga` / `reemplazo` / `borrado` / `compartido` |
+| `accion` | CharField(20): `carga` / `reemplazo` / `borrado` / `consulta` |
 | `entity_type` / `entity_id` | ContentType + id |
 | `tipo` | CharField(100) (código o nombre del tipo, snapshot) |
 | `archivo_anterior` | CharField(500) blank (storage_path o nombre visible anterior) |
@@ -150,18 +150,19 @@ class StorageBackend:
 ### 5.3 Seguridad (§10)
 
 - Bucket **privado**. Solo el backend accede con la service role key (nunca expuesta al navegador).
-- Flujo ver/descargar/compartir:
+- Flujo ver/descargar:
   1. `@login_required` verifica autenticación.
   2. El backend verifica que el documento existe y pertenece a la entidad pedida.
   3. Genera signed URL con expiración.
   4. El navegador consume la URL temporal.
+- **"Ver"** abre el PDF en el navegador (un `<iframe>`/pestaña apuntando a la signed URL; el lector nativo del navegador incluye su propio botón de descarga). **"Descargar"** fuerza la descarga con el nombre amigable.
 - RLS / Storage Policies: se documentan en el README como SQL a aplicar en Supabase. La service role key opera como superusuario; las políticas protegen accesos directos no autenticados.
 
-### 5.4 Compartir (§11)
+### 5.4 Sin compartición externa
 
-- Botón "Compartir" en cada documento → vista que genera signed URL con expiración `DOCUMENT_SHARE_EXPIRES` (default 1440 s = 24 h).
-- Muestra "Copiar enlace" + "Enlace válido durante X minutos".
-- No convierte el documento en público. No se almacena la signed URL.
+- **No existe botón "Compartir" ni enlace temporal para terceros.** Decisión del cliente.
+- Quien tenga acceso al sistema ve el documento con "Ver" (lector de PDF, que permite descargar) o lo descarga con "Descargar".
+- Los documentos permanecen siempre privados; solo el backend puede generar signed URLs de corta duración para usuarios autenticados.
 
 ---
 
@@ -229,9 +230,9 @@ class StorageBackend:
 ### 7.2 Ficha del vehículo (`vehicle/<pk>/`)
 
 - Datos del vehículo + sección DOCUMENTACIÓN con cada tipo:
-  - `SOAT` 🟢 Vigente · Vence: 20/09/2027 · [Ver] [Descargar] [Compartir] [Reemplazar]
-  - `Técnico-mecánica` 🟡 Próximo a vencer · Vence: 25/08/2026 · [Ver] [Descargar] [Compartir] [Reemplazar]
-  - `Tarjeta de propiedad` 🟢 Registrada · [Ver] [Descargar] [Compartir] [Reemplazar]
+  - `SOAT` 🟢 Vigente · Vence: 20/09/2027 · [Ver] [Descargar] [Reemplazar]
+  - `Técnico-mecánica` 🟡 Próximo a vencer · Vence: 25/08/2026 · [Ver] [Descargar] [Reemplazar]
+  - `Tarjeta de propiedad` 🟢 Registrada · [Ver] [Descargar] [Reemplazar]
 - Botón "+ Agregar documento" (formulario §23).
 
 ### 7.3 Ficha del conductor (`driver/<pk>/`)
@@ -245,8 +246,7 @@ class StorageBackend:
 - `documentos:vehicle` (`vehicle/<int:pk>/`) y `documentos:driver` (`driver/<int:pk>/`) → fichas.
 - `documentos:subir` → POST multipart (entidad+tipo+archivo+ fechas).
 - `documentos:descargar` (`<int:pk>/descargar/`) → redirect a signed URL.
-- `documentos:ver` (`<int:pk>/ver/`) → redirect a signed URL (o render inline).
-- `documentos:compartir` (`<int:pk>/compartir/`) → página con enlace temporal + copiar.
+- `documentos:ver` (`<int:pk>/ver/`) → redirect a signed URL (abre el PDF en el navegador).
 - `documentos:reemplazar` (`<int:pk>/reemplazar/`) → confirmación + POST.
 - `documentos:desactivar_conductor` (`driver/<int:pk>/desactivar/`) → POST con confirmación.
 
@@ -263,7 +263,6 @@ DOCUMENT_MAX_SIZE=10485760                (10 MB)
 DOCUMENT_ALLOWED_EXTENSIONS=pdf,jpg,jpeg,png
 DOCUMENT_ALERT_DAYS=30
 DOCUMENT_SIGNED_URL_EXPIRES=300           (5 min, ver/descargar)
-DOCUMENT_SHARE_EXPIRES=1440               (24 h, compartir)
 DOCUMENT_STORAGE_LIMIT=1073741824         (1 GB, límite para el indicador de almacenamiento)
 DOCUMENT_LOCAL_ROOT=media/documents       (solo LocalStorage)
 SUPABASE_URL=...
@@ -303,7 +302,7 @@ Crear `README.md` en la raíz con:
 - `Document` genérico con GenericForeignKey.
 - `DocumentAudit`.
 - Backend LocalStorage + SupabaseStorage, intercambiable.
-- Subida, ver, descargar, compartir (signed URLs), reemplazar.
+- Subida, ver, descargar (signed URLs), reemplazar. **Sin compartición externa** (decisión del cliente).
 - Alertas de vencimiento (vehículos) + NO CARGADO (ambos).
 - Panel documental + fichas de vehículo/conductor.
 - Flujo de desactivación de conductor.
@@ -321,7 +320,7 @@ Crear `README.md` en la raíz con:
 
 ## 12. Criterios de aceptación
 
-1. Se puede cargar un SOAT a un vehículo (PDF ≤10 MB), verlo, descargarlo con nombre `SOAT_ABC123_2027.pdf` y compartirlo con enlace temporal.
+1. Se puede cargar un SOAT a un vehículo (PDF ≤10 MB), verlo en el navegador (el lector de PDF permite descargarlo) y descargarlo con nombre `SOAT_ABC123_2027.pdf`. No existe botón "Compartir" ni enlace temporal para terceros.
 2. Cargar un SOAT nuevo reemplaza el anterior: el anterior queda `reemplazado` en BD, su archivo se borra del Storage, y la auditoría registra archivo_anterior/archivo_nuevo.
 3. Si la subida falla, el documento anterior permanece intacto.
 4. Un vehículo con SOAT a 24 días muestra "⚠️ SOAT ABC123 vence en 24 días."; con técnico-mecánica vencida muestra "🔴 Técnico-mecánica DEF456 vencida."; un conductor sin licencia muestra "⚪ Licencia de Juan Pérez no cargada."
