@@ -60,6 +60,28 @@ class DocumentosViewsTests(TestCase):
         self.assertEqual(soat.status_code, 302)
         self.assertEqual(self.vehicle.documentos_doc.count(), 1)
 
+    def test_media_rechaza_path_traversal(self):
+        url = reverse("documentos:media", kwargs={"storage_path": "../../../../.env"})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_media_sirve_mime_type_del_documento(self):
+        from apps.documentos.models import DocumentType
+
+        soat = DocumentType.objects.get(codigo="soat")
+        doc = cargar_documento(
+            tipo=soat, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=date(2027, 1, 1), fecha_vencimiento=date(2028, 1, 1),
+            usuario=self.user,
+        )
+        response = self.client.get(
+            reverse("documentos:media", kwargs={"storage_path": doc.storage_path})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response.content, b"%PDF-1.4")
+
     def test_descargar_envia_archivo_adjunto(self):
         from apps.documentos.models import DocumentType
 

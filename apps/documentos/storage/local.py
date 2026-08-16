@@ -11,7 +11,11 @@ class LocalStorage(StorageBackend):
         self.raiz = Path(settings.BASE_DIR) / settings.DOCUMENT_LOCAL_ROOT
 
     def _ruta(self, storage_path):
-        return self.raiz / storage_path
+        raiz = self.raiz.resolve()
+        ruta = (raiz / storage_path).resolve()
+        if not str(ruta).startswith(str(raiz)):
+            raise ValueError("Ruta fuera del almacenamiento local.")
+        return ruta
 
     def subir(self, storage_path, archivo, content_type):
         ruta = self._ruta(storage_path)

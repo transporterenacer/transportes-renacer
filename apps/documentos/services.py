@@ -19,7 +19,15 @@ from apps.flota.models import Vehicle
 
 
 def documentos_vigentes_entidad(entidad, tipo=None):
-    qs = Document.objects.filter(entity_id=entidad.pk, estado=Document.VIGENTE)
+    if isinstance(entidad, Vehicle):
+        entity_type = content_type_vehicle()
+    elif isinstance(entidad, Driver):
+        entity_type = content_type_driver()
+    else:
+        raise ValidationError("Entidad no soportada.")
+    qs = Document.objects.filter(
+        entity_id=entidad.pk, entity_type=entity_type, estado=Document.VIGENTE
+    )
     if tipo is not None:
         qs = qs.filter(tipo=tipo)
     return qs
@@ -43,14 +51,6 @@ def generar_nombre_archivo(tipo, entidad, anio, extension):
     else:
         raise ValidationError("Entidad no soportada para documentos.")
     return f"{tipo.codigo.upper()}_{identificador}_{anio}.{extension}"
-
-
-def _ruta_tipo_entidad(tipo, entidad):
-    if isinstance(entidad, Vehicle):
-        return f"vehicles/{entidad.placa}/{tipo.codigo}"
-    if isinstance(entidad, Driver):
-        return f"drivers/{entidad.documento}/{tipo.codigo}"
-    raise ValidationError("Entidad no soportada.")
 
 
 def validar_archivo(tipo, entidad, nombre, contenido, content_type):
@@ -97,9 +97,16 @@ def cargar_documento(
     anio = (fecha_vencimiento or fecha_expedicion or timezone.localdate()).year
     nombre_archivo = generar_nombre_archivo(tipo, entidad, anio, extension)
 
-    storage.subir(storage_path, contenido, content_type)
-    if not storage.existe(storage_path):
-        raise ValidationError("La subida al almacenamiento falló; el documento anterior queda intacto.")
+    try:
+        storage.subir(storage_path, contenido, content_type)
+        if not storage.existe(storage_path):
+            raise ValidationError("La subida al almacenamiento falló; el documento anterior queda intacto.")
+    except Exception:
+        try:
+            storage.eliminar(storage_path)
+        except Exception:
+            pass
+        raise
 
     with transaction.atomic():
         anterior = None
@@ -255,26 +262,28 @@ def _fmt_bytes(b):
 
 def desactivar_conductor(driver, usuario=None):
     borrados = 0
-    for doc in list(
-        Document.objects.filter(
-            entity_id=driver.pk,
-            entity_type=content_type_driver(),
-            estado=Document.VIGENTE,
-        ).select_related("tipo")
-    ):
-        if doc.es_personal:
-            get_storage_backend().eliminar(doc.storage_path)
-            DocumentAudit.objects.create(
-                usuario=usuario,
-                accion=DocumentAudit.BORRADO,
-                entity_type=doc.entity_type,
+    storage = get_storage_backend()
+    with transaction.atomic():
+        for doc in list(
+            Document.objects.filter(
                 entity_id=driver.pk,
-                tipo=doc.tipo.codigo,
-                archivo_anterior=doc.storage_path,
-                detalle=f"Borrado por desactivación del conductor {driver}",
-            )
-            doc.delete()
-            borrados += 1
-    driver.estado = Driver.INACTIVO
-    driver.save(update_fields=["estado"])
+                entity_type=content_type_driver(),
+                estado=Document.VIGENTE,
+            ).select_related("tipo")
+        ):
+            if doc.es_personal:
+                storage.eliminar(doc.storage_path)
+                DocumentAudit.objects.create(
+                    usuario=usuario,
+                    accion=DocumentAudit.BORRADO,
+                    entity_type=doc.entity_type,
+                    entity_id=driver.pk,
+                    tipo=doc.tipo.codigo,
+                    archivo_anterior=doc.storage_path,
+                    detalle=f"Borrado por desactivación del conductor {driver}",
+                )
+                doc.delete()
+                borrados += 1
+        driver.estado = Driver.INACTIVO
+        driver.save(update_fields=["estado"])
     return borrados

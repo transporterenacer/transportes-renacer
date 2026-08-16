@@ -11,10 +11,12 @@ from apps.documentos.services import (
     cargar_documento,
     desactivar_conductor,
     documentos_faltantes,
+    documentos_vigentes_entidad,
     estado_documento,
     generar_nombre_archivo,
     generar_storage_path,
 )
+from apps.documentos.storage import get_storage_backend
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
 
@@ -72,6 +74,7 @@ class CargarDocumentoTests(TestCase):
         self.assertEqual(doc1.estado, Document.REEMPLAZADO)
         self.assertEqual(doc2.estado, Document.VIGENTE)
         self.assertNotEqual(path1, doc2.storage_path)
+        self.assertFalse(get_storage_backend().existe(path1))
         audit = DocumentAudit.objects.get(accion=DocumentAudit.REEMPLAZO)
         self.assertEqual(audit.archivo_anterior, path1)
         self.assertEqual(audit.archivo_nuevo, doc2.storage_path)
@@ -107,7 +110,20 @@ class FaltantesTests(TestCase):
         self.assertTrue(cedula_drivers)
 
 
+@override_settings(DOCUMENT_STORAGE_LIMIT=10000)
 class IndicadorAlmacenamientoTests(TestCase):
+    def setUp(self):
+        C().handle()
+        self.usuario = User.objects.create_user(username="maria", password="x")
+        self.vehicle = Vehicle.objects.create(placa="ABC123")
+        self.soat = DocumentType.objects.get(codigo="soat")
+        cargar_documento(
+            tipo=self.soat, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=2048,
+            fecha_expedicion=date(2027, 1, 1), fecha_vencimiento=date(2028, 1, 1),
+            usuario=self.usuario,
+        )
+
     def test_indicador_almacenamiento(self):
         from apps.documentos.services import indicador_almacenamiento
 
@@ -115,7 +131,42 @@ class IndicadorAlmacenamientoTests(TestCase):
         self.assertIn("usado", data)
         self.assertIn("limite", data)
         self.assertIn("porcentaje", data)
-        self.assertGreaterEqual(data["porcentaje"], 0.0)
+        self.assertGreaterEqual(data["usado"], 2048)
+        self.assertGreater(data["porcentaje"], 0.0)
+
+
+class DocumentosVigentesEntidadTests(TestCase):
+    def setUp(self):
+        C().handle()
+        self.usuario = User.objects.create_user(username="maria", password="x")
+        self.vehicle = Vehicle.objects.create(placa="ABC123")
+        self.driver = Driver.objects.create(nombre="Juan Pérez", documento="123456789")
+        self.soat = DocumentType.objects.get(codigo="soat")
+        self.cedula = DocumentType.objects.get(codigo="cedula")
+
+    def test_vigentes_filtra_por_entity_type_con_mismo_pk(self):
+        self.assertEqual(self.vehicle.pk, self.driver.pk)
+        doc_vehicle = cargar_documento(
+            tipo=self.soat, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=date(2027, 1, 1), fecha_vencimiento=date(2028, 1, 1),
+            usuario=self.usuario,
+        )
+        doc_driver = cargar_documento(
+            tipo=self.cedula, entidad=self.driver, archivo=b"datos",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=date(2027, 1, 1), usuario=self.usuario,
+        )
+        self.assertEqual(doc_vehicle.entity_id, doc_driver.entity_id)
+        self.assertNotEqual(doc_vehicle.entity_type_id, doc_driver.entity_type_id)
+        self.assertEqual(
+            [d.pk for d in documentos_vigentes_entidad(self.vehicle)],
+            [doc_vehicle.pk],
+        )
+        self.assertEqual(
+            [d.pk for d in documentos_vigentes_entidad(self.driver)],
+            [doc_driver.pk],
+        )
 
 
 class DesactivarConductorTests(TestCase):

@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -135,13 +137,16 @@ def ver(request, pk):
 def descargar(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     if settings.DOCUMENT_STORAGE_BACKEND == "local":
-        response = HttpResponse(
-            get_storage_backend().descargar(doc.storage_path),
-            content_type=doc.mime_type,
-        )
+        try:
+            contenido = get_storage_backend().descargar(doc.storage_path)
+        except FileNotFoundError:
+            raise Http404
+        response = HttpResponse(contenido, content_type=doc.mime_type)
         response["Content-Disposition"] = f'attachment; filename="{doc.nombre_archivo}"'
         return response
     url = get_storage_backend().signed_url(doc.storage_path, settings.DOCUMENT_SIGNED_URL_EXPIRES)
+    separador = "&" if "?" in url else "?"
+    url = f"{url}{separador}download={quote(doc.nombre_archivo)}"
     return HttpResponseRedirect(url)
 
 
@@ -193,10 +198,14 @@ def desactivar_conductor(request, pk):
 def media(request, storage_path):
     if settings.DOCUMENT_STORAGE_BACKEND != "local":
         raise Http404
+    doc = Document.objects.filter(storage_path=storage_path).first()
+    if doc is None:
+        raise Http404
     storage = get_storage_backend()
     if not storage.existe(storage_path):
         raise Http404
-    return HttpResponse(
-        storage.descargar(storage_path),
-        content_type="application/octet-stream",
-    )
+    try:
+        contenido = storage.descargar(storage_path)
+    except FileNotFoundError:
+        raise Http404
+    return HttpResponse(contenido, content_type=doc.mime_type)

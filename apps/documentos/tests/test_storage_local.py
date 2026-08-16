@@ -1,12 +1,29 @@
-import os
+import shutil
+import tempfile
+
 from django.test import TestCase, override_settings
 
 from apps.documentos.storage import get_storage_backend
 from apps.documentos.storage.local import LocalStorage
 
 
+# Uso un directorio temporal dedicado (solo pruebas) para no ensuciar
+# la carpeta real media/documents del proyecto.
 @override_settings(DOCUMENT_STORAGE_BACKEND="local")
 class LocalStorageTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._tmp = tempfile.mkdtemp(prefix="documentos_test_")
+        cls._tmp_override = override_settings(DOCUMENT_LOCAL_ROOT=cls._tmp)
+        cls._tmp_override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp_override.disable()
+        shutil.rmtree(cls._tmp, ignore_errors=True)
+        super().tearDownClass()
+
     def test_backend_es_local(self):
         self.assertIsInstance(get_storage_backend(), LocalStorage)
 
@@ -30,3 +47,8 @@ class LocalStorageTests(TestCase):
         storage = get_storage_backend()
         url = storage.signed_url("vehicles/ABC123/soat/test.pdf", 300)
         self.assertIn("/documentos/media/", url)
+
+    def test_ruta_rechaza_path_traversal(self):
+        storage = get_storage_backend()
+        with self.assertRaises(ValueError):
+            storage.descargar("../../../../.env")
