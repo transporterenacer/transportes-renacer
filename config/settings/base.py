@@ -92,6 +92,19 @@ STORAGES = {
     },
 }
 
+DOCUMENT_STORAGE_BACKEND = os.environ.get("DOCUMENT_STORAGE_BACKEND", "local")
+DOCUMENT_BUCKET = os.environ.get("DOCUMENT_BUCKET", "documents")
+DOCUMENT_MAX_SIZE = int(os.environ.get("DOCUMENT_MAX_SIZE", 10485760))
+DOCUMENT_ALLOWED_EXTENSIONS = [
+    e.strip()
+    for e in os.environ.get("DOCUMENT_ALLOWED_EXTENSIONS", "pdf,jpg,jpeg,png").split(",")
+    if e.strip()
+]
+DOCUMENT_ALERT_DAYS = int(os.environ.get("DOCUMENT_ALERT_DAYS", 30))
+DOCUMENT_SIGNED_URL_EXPIRES = int(os.environ.get("DOCUMENT_SIGNED_URL_EXPIRES", 300))
+DOCUMENT_STORAGE_LIMIT = int(os.environ.get("DOCUMENT_STORAGE_LIMIT", 1073741824))
+DOCUMENT_LOCAL_ROOT = os.environ.get("DOCUMENT_LOCAL_ROOT", "media/documents")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:inicio"
