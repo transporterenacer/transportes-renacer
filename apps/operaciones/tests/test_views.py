@@ -9,7 +9,7 @@ from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
 from apps.operaciones.models import Operation
-from apps.operaciones.services import registrar_turno
+from apps.operaciones.services import asignar_mulas, registrar_turno
 
 
 class OperacionesViewsTests(TestCase):
@@ -32,6 +32,7 @@ class OperacionesViewsTests(TestCase):
             valor_turno_noche=180000,
             estado=Operation.ACTIVA,
         )
+        asignar_mulas(self.op, [self.vehicle])
         self.client.force_login(self.user)
 
     def test_lista_requiere_login(self):

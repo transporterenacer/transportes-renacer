@@ -4,12 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.flota.models import Vehicle
 from apps.operaciones.forms import OperationForm, ShiftForm
 from apps.operaciones.models import Operation, Shift
-from apps.operaciones.services import (
-    asignar_mulas,
-    cancelar_turno,
-    mulas_disponibles,
-    registrar_turno,
-)
+from apps.operaciones.services import asignar_mulas, cancelar_turno, registrar_turno
 
 
 @login_required
@@ -22,7 +17,10 @@ def operacion_list(request):
 
 @login_required
 def operacion_detail(request, pk):
-    operation = get_object_or_404(Operation.objects.prefetch_related("shifts", "mulas"), pk=pk)
+    operation = get_object_or_404(
+        Operation.objects.prefetch_related("shifts__vehicle", "shifts__driver", "mulas__vehicle"),
+        pk=pk,
+    )
     return render(request, "operaciones/operacion_detail.html", {"operation": operation})
 
 
@@ -44,12 +42,9 @@ def turno_nuevo(request, pk):
     operation = get_object_or_404(Operation, pk=pk)
     form = ShiftForm(request.POST or None)
     mulas = operation.mulas.filter(activa=True)
-    if mulas.exists():
-        form.fields["vehicle"].queryset = Vehicle.objects.filter(
-            pk__in=mulas.values("vehicle")
-        )
-    else:
-        form.fields["vehicle"].queryset = mulas_disponibles()
+    form.fields["vehicle"].queryset = Vehicle.objects.filter(
+        pk__in=mulas.values("vehicle")
+    )
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         registrar_turno(
