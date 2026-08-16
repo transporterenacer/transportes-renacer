@@ -1,5 +1,7 @@
 from django.db import models
+from django.utils import timezone
 
+from apps.conductores.models import Driver
 from apps.core.models import AuditMixin
 from apps.operaciones.models import Shift
 
@@ -47,3 +49,23 @@ class PayrollItem(AuditMixin):
 
     def __str__(self):
         return f"{self.payroll.numero} - {self.shift}"
+
+
+class DriverAdvance(AuditMixin):
+    driver = models.ForeignKey(
+        Driver, on_delete=models.PROTECT, related_name="abonos"
+    )
+    fecha = models.DateField(default=timezone.localdate)
+    valor = models.DecimalField(max_digits=14, decimal_places=0)
+    descripcion = models.CharField(max_length=200, blank=True, default="")
+    payroll = models.ForeignKey(
+        Payroll, null=True, blank=True, on_delete=models.SET_NULL, related_name="abonos"
+    )
+
+    class Meta:
+        verbose_name = "Abono a conductor"
+        verbose_name_plural = "Abonos a conductores"
+        ordering = ["-fecha"]
+
+    def __str__(self):
+        return f"{self.driver.nombre} ${self.valor}"
