@@ -132,10 +132,18 @@ class Shift(AuditMixin):
             self.cumplimiento_pct = round(
                 float(self.horas_trabajadas) / float(self.meta_horas) * 100, 1
             )
-        if self.estado == self.REALIZADO:
-            self.valor_pagado = self.valor_estandar
-        else:
-            self.valor_pagado = 0
+        estado_anterior = None
+        if self.pk:
+            estado_anterior = (
+                Shift.objects.filter(pk=self.pk)
+                .values_list("estado", flat=True)
+                .first()
+            )
+        if estado_anterior is None or estado_anterior != self.estado:
+            if self.estado == self.REALIZADO:
+                self.valor_pagado = self.valor_estandar
+            else:
+                self.valor_pagado = 0
         super().save(*args, **kwargs)
 
     @property

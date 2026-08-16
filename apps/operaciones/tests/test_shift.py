@@ -83,3 +83,29 @@ class ShiftTests(TestCase):
             timezone.datetime(2026, 8, 10, 17, 0),
         )
         self.assertEqual(shift.estado, Shift.PROGRAMADO)
+
+    def test_edicion_manual_del_valor_no_es_sobreescrita(self):
+        shift = self._crear_shift(
+            timezone.datetime(2026, 8, 10, 6, 0),
+            timezone.datetime(2026, 8, 10, 17, 0),
+            estado=Shift.REALIZADO,
+        )
+        self.assertEqual(shift.valor_pagado, 180000)
+        shift.valor_pagado = 200000
+        shift.observaciones = "Ajuste manual"
+        shift.save()
+        shift.refresh_from_db()
+        self.assertEqual(shift.valor_pagado, 200000)
+
+    def test_cancelar_resetea_valor_pagado(self):
+        shift = self._crear_shift(
+            timezone.datetime(2026, 8, 10, 6, 0),
+            timezone.datetime(2026, 8, 10, 17, 0),
+            estado=Shift.REALIZADO,
+        )
+        self.assertEqual(shift.valor_pagado, 180000)
+        shift.estado = Shift.CANCELADO
+        shift.motivo_cancelacion = "Avería"
+        shift.save()
+        shift.refresh_from_db()
+        self.assertEqual(shift.valor_pagado, 0)
