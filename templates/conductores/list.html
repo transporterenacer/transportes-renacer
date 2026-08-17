@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Conductores{% endblock %}
+{% block page_title %}Conductores{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h3 class="card-title" style="margin:0;">Conductores</h3>
+    <a class="btn-primary" href="{% url 'conductores:nuevo' %}">+ Nuevo conductor</a>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for c in conductores %}
+      <tr>
+        <td><strong>{{ c.nombre }}</strong></td>
+        <td class="mono">{{ c.documento }}</td>
+        <td class="mono">{{ c.telefono|default:"—" }}</td>
+        <td>
+          {% if c.estado == "inactivo" %}<span class="badge badge-danger">{{ c.get_estado_display }}</span>
+          {% else %}<span class="badge badge-ok">{{ c.get_estado_display }}</span>{% endif %}
+        </td>
+        <td class="table-actions">
+          <a href="{% url 'conductores:editar' c.pk %}">Editar</a>
+          <a href="{% url 'documentos:driver' c.pk %}">Expediente</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr class="empty-row"><td colspan="5">No hay conductores registrados.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

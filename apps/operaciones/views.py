@@ -1,10 +1,16 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.flota.models import Vehicle
 from apps.operaciones.forms import OperationForm, ShiftForm
 from apps.operaciones.models import Operation, Shift
-from apps.operaciones.services import asignar_mulas, cancelar_turno, registrar_turno
+from apps.operaciones.services import (
+    asignar_mulas,
+    cancelar_turno,
+    liberar_mula,
+    registrar_turno,
+)
 
 
 @login_required
@@ -21,7 +27,15 @@ def operacion_detail(request, pk):
         Operation.objects.prefetch_related("shifts__vehicle", "shifts__driver", "mulas__vehicle"),
         pk=pk,
     )
-    return render(request, "operaciones/operacion_detail.html", {"operation": operation})
+    asignadas = operation.mulas.filter(activa=True).values_list("vehicle_id", flat=True)
+    disponibles = Vehicle.objects.filter(estado=Vehicle.DISPONIBLE).exclude(
+        pk__in=asignadas
+    )
+    return render(
+        request,
+        "operaciones/operacion_detail.html",
+        {"operation": operation, "mulas_disponibles": disponibles},
+    )
 
 
 @login_required
@@ -35,6 +49,14 @@ def operacion_nueva(request):
     else:
         form = OperationForm()
     return render(request, "operaciones/operacion_list.html", {"form": form, "creando": True})
+
+
+@login_required
+def turno_operacion(request):
+    operaciones = Operation.objects.filter(
+        estado__in=[Operation.PROGRAMADA, Operation.ACTIVA]
+    ).order_by("-fecha_inicio")
+    return render(request, "operaciones/turno_operacion.html", {"operaciones": operaciones})
 
 
 @login_required
@@ -58,14 +80,43 @@ def turno_nuevo(request, pk):
             meta_horas=operation.meta_horas,
             novedad_categoria=data.get("novedad_categoria"),
             novedad_descripcion=data.get("novedad_descripcion", ""),
+            retirar_mula=data.get("liberar_mula", False),
         )
         return redirect("operaciones:detalle", pk=operation.pk)
     return render(request, "operaciones/shift_form.html", {"form": form, "operation": operation})
 
 
 @login_required
+def mula_liberar(request, pk, vehicle_pk):
+    operation = get_object_or_404(Operation, pk=pk)
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_pk)
+    if request.method == "POST":
+        liberar_mula(operation, vehicle)
+    return redirect("operaciones:detalle", pk=operation.pk)
+
+
+@login_required
+def mula_agregar(request, pk, vehicle_pk):
+    operation = get_object_or_404(Operation, pk=pk)
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_pk)
+    if request.method == "POST":
+        if vehicle.estado == Vehicle.DISPONIBLE:
+            asignar_mulas(operation, [vehicle])
+    return redirect("operaciones:detalle", pk=operation.pk)
+
+
+@login_required
 def turno_cancelar(request, pk):
     shift = get_object_or_404(Shift, pk=pk)
     if request.method == "POST":
-        cancelar_turno(shift, request.POST.get("motivo", ""), usuario=request.user)
+        try:
+            cancelar_turno(shift, request.POST.get("motivo", ""), usuario=request.user)
+        except ValidationError as exc:
+            return render(
+                request,
+                "operaciones/error.html",
+                {"mensaje": exc.message, "volver": "operaciones:detalle",
+                 "volver_pk": shift.operation_id, "codigo": 409},
+                status=409,
+            )
     return redirect("operaciones:detalle", pk=shift.operation_id)

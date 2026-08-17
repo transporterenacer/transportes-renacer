@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}Gestión documental{% endblock %}
 {% block content %}
 <p class="eyebrow">Gestión documental</p>
@@ -17,11 +18,11 @@
   <p style="margin: 0 0 6px;">{{ indicador_almacenamiento.texto }} <span class="tag">{{ indicador_almacenamiento.porcentaje }}%</span></p>
   <div style="background: #e5e7eb; border-radius: 6px; height: 14px; overflow: hidden;">
     {% if indicador_almacenamiento.porcentaje >= 90 %}
-      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #dc2626; height: 100%;"></div>
+      <div style="width: {{ indicador_almacenamiento.porcentaje|stringformat:".1f" }}%; background: #dc2626; height: 100%;"></div>
     {% elif indicador_almacenamiento.porcentaje >= 70 %}
-      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #d97706; height: 100%;"></div>
+      <div style="width: {{ indicador_almacenamiento.porcentaje|stringformat:".1f" }}%; background: #d97706; height: 100%;"></div>
     {% else %}
-      <div style="width: {{ indicador_almacenamiento.porcentaje }}%; background: #16a34a; height: 100%;"></div>
+      <div style="width: {{ indicador_almacenamiento.porcentaje|stringformat:".1f" }}%; background: #16a34a; height: 100%;"></div>
     {% endif %}
   </div>
 </div>

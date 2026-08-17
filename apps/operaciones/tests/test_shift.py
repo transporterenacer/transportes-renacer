@@ -1,12 +1,15 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
+from apps.nomina.models import Payroll, PayrollItem
 from apps.operaciones.models import Operation, Shift
+from apps.operaciones.services import cancelar_turno
 
 
 class ShiftTests(TestCase):
@@ -109,3 +112,30 @@ class ShiftTests(TestCase):
         shift.save()
         shift.refresh_from_db()
         self.assertEqual(shift.valor_pagado, 0)
+
+    def test_cancelar_turno_bloqueado_si_liquidado(self):
+        shift = self._crear_shift(
+            timezone.datetime(2026, 8, 10, 6, 0),
+            timezone.datetime(2026, 8, 10, 17, 0),
+            estado=Shift.REALIZADO,
+        )
+        payroll = Payroll.objects.create(
+            numero="NOM-2026-001",
+            periodo_inicio=date(2026, 8, 10),
+            periodo_fin=date(2026, 8, 16),
+        )
+        PayrollItem.objects.create(payroll=payroll, shift=shift, valor=180000)
+        with self.assertRaises(ValidationError):
+            cancelar_turno(shift, "Intentando cancelar")
+        shift.refresh_from_db()
+        self.assertEqual(shift.estado, Shift.REALIZADO)
+
+    def test_cancelar_turno_permitido_sin_liquidar(self):
+        shift = self._crear_shift(
+            timezone.datetime(2026, 8, 10, 6, 0),
+            timezone.datetime(2026, 8, 10, 17, 0),
+            estado=Shift.REALIZADO,
+        )
+        cancelar_turno(shift, "Avería")
+        shift.refresh_from_db()
+        self.assertEqual(shift.estado, Shift.CANCELADO)

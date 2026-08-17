@@ -2,30 +2,214 @@
 {% block title %}Operaciones{% endblock %}
 {% block content %}
 <p class="eyebrow">Transportes Renacer</p>
-<h1>Operaciones activas</h1>
 {% if creando %}
-  <form method="post" class="card">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Crear operación</button>
-  </form>
+<h1>Nueva operación</h1>
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alerta"><p>{{ form.non_field_errors }}</p></div>
+  {% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      {{ form.codigo.label_tag }}{{ form.codigo }}{{ form.codigo.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.buque.label_tag }}{{ form.buque }}{{ form.buque.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.generador_de_carga.label_tag }}
+      <div class="field-with-plus">
+        {{ form.generador_de_carga }}
+        <button type="button" class="icon-btn" id="btn-nuevo-generador" aria-label="Nuevo generador de carga">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+      {{ form.generador_de_carga.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.puerto.label_tag }}
+      <div class="field-with-plus">
+        {{ form.puerto }}
+        <button type="button" class="icon-btn" id="btn-nuevo-puerto" aria-label="Nuevo puerto">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+      {{ form.puerto.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_inicio.label_tag }}{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_fin_estimada.label_tag }}{{ form.fecha_fin_estimada }}{{ form.fecha_fin_estimada.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.meta_horas.label_tag }}{{ form.meta_horas }}{{ form.meta_horas.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.tarifa_hora.label_tag }}{{ form.tarifa_hora }}{{ form.tarifa_hora.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.valor_turno_dia.label_tag }}{{ form.valor_turno_dia }}{{ form.valor_turno_dia.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.valor_turno_noche.label_tag }}{{ form.valor_turno_noche }}{{ form.valor_turno_noche.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.mulas.label_tag }}{{ form.mulas }}{{ form.mulas.errors }}
+    </div>
+  </div>
+  <div class="form-field">
+    {{ form.observaciones.label_tag }}{{ form.observaciones }}{{ form.observaciones.errors }}
+  </div>
+  <button type="submit" class="btn-primary">Crear operación</button>
+</form>
+
+<!-- Modal: nuevo generador de carga -->
+<div class="modal-overlay" id="modal-generador" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 class="card-title" style="margin:0;">Nuevo generador de carga</h3>
+      <button type="button" class="icon-btn modal-close" data-close="modal-generador" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form id="form-nuevo-generador" class="form-inline">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="gen-nombre">Nombre</label>
+          <input type="text" id="gen-nombre" required>
+        </div>
+        <div class="form-field">
+          <label for="gen-nit">NIT</label>
+          <input type="text" id="gen-nit">
+        </div>
+        <div class="form-field">
+          <label for="gen-contacto">Contacto</label>
+          <input type="text" id="gen-contacto">
+        </div>
+        <div class="form-field">
+          <label for="gen-telefono">Teléfono</label>
+          <input type="text" id="gen-telefono">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Guardar generador</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: nuevo puerto -->
+<div class="modal-overlay" id="modal-puerto" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 class="card-title" style="margin:0;">Nuevo puerto</h3>
+      <button type="button" class="icon-btn modal-close" data-close="modal-puerto" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form id="form-nuevo-puerto" class="form-inline">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="puerto-nombre">Nombre</label>
+          <input type="text" id="puerto-nombre" required>
+        </div>
+        <div class="form-field">
+          <label for="puerto-ciudad">Ciudad</label>
+          <input type="text" id="puerto-ciudad">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Guardar puerto</button>
+    </form>
+  </div>
+</div>
 {% else %}
-  <a class="btn btn-primary" href="{% url 'operaciones:nuevo' %}">Nueva operación</a>
-  <table class="table">
-    <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th><th>Estado</th></tr></thead>
-    <tbody>
-    {% for op in operaciones %}
-      <tr>
-        <td><a href="{% url 'operaciones:detalle' op.pk %}">{{ op.codigo }}</a></td>
-        <td>{{ op.buque }}</td>
-        <td>{{ op.generador_de_carga }}</td>
-        <td>{{ op.puerto }}</td>
-        <td>{{ op.get_estado_display }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="5">No hay operaciones activas.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<h1>Operaciones activas</h1>
+<a class="btn-primary" href="{% url 'operaciones:nuevo' %}">Nueva operación</a>
+<table class="table">
+  <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for op in operaciones %}
+    <tr>
+      <td><a href="{% url 'operaciones:detalle' op.pk %}">{{ op.codigo }}</a></td>
+      <td>{{ op.buque }}</td>
+      <td>{{ op.generador_de_carga }}</td>
+      <td>{{ op.puerto }}</td>
+      <td>{{ op.get_estado_display }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">No hay operaciones activas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if creando %}
+<script>
+(function () {
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  var modal = null;
+
+  function openModal(id) {
+    modal = document.getElementById(id);
+    modal.hidden = false;
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.hidden = true;
+  }
+
+  function setupForm(formId, url, fieldId, selectName) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var payload = {};
+      form.querySelectorAll('input').forEach(function (input) {
+        var key = input.id.split('-')[1];
+        payload[key] = input.value;
+      });
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.id) {
+          var sel = document.querySelector('select[name="' + selectName + '"]');
+          var opt = document.createElement('option');
+          opt.value = data.id;
+          opt.textContent = data.nombre;
+          sel.appendChild(opt);
+          sel.value = data.id;
+          form.reset();
+          closeModal(modal.id);
+        } else {
+          alert(data.error || 'Error al guardar.');
+        }
+      })
+      .catch(function () { alert('Error de conexión.'); });
+    });
+  }
+
+  document.getElementById('btn-nuevo-generador').addEventListener('click', function () { openModal('modal-generador'); });
+  document.getElementById('btn-nuevo-puerto').addEventListener('click', function () { openModal('modal-puerto'); });
+  document.querySelectorAll('.modal-close').forEach(function (b) {
+    b.addEventListener('click', function () { closeModal(b.dataset.close); });
+  });
+  document.querySelectorAll('.modal-overlay').forEach(function (ov) {
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) ov.hidden = true;
+    });
+  });
+
+  setupForm('form-nuevo-generador', '{% url "catalogos:api_generador_crear" %}', 'generador', 'generador_de_carga');
+  setupForm('form-nuevo-puerto', '{% url "catalogos:api_puerto_crear" %}', 'puerto', 'puerto');
+})();
+</script>
 {% endif %}
 {% endblock %}

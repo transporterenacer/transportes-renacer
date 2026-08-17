@@ -287,3 +287,31 @@ def desactivar_conductor(driver, usuario=None):
         driver.estado = Driver.INACTIVO
         driver.save(update_fields=["estado"])
     return borrados
+
+
+def desactivar_vehiculo(vehicle, usuario=None):
+    borrados = 0
+    storage = get_storage_backend()
+    with transaction.atomic():
+        for doc in list(
+            Document.objects.filter(
+                entity_id=vehicle.pk,
+                entity_type=content_type_vehicle(),
+                estado=Document.VIGENTE,
+            ).select_related("tipo")
+        ):
+            storage.eliminar(doc.storage_path)
+            DocumentAudit.objects.create(
+                usuario=usuario,
+                accion=DocumentAudit.BORRADO,
+                entity_type=doc.entity_type,
+                entity_id=vehicle.pk,
+                tipo=doc.tipo.codigo,
+                archivo_anterior=doc.storage_path,
+                detalle=f"Borrado por desactivación del vehículo {vehicle}",
+            )
+            doc.delete()
+            borrados += 1
+        vehicle.estado = Vehicle.FUERA_DE_SERVICIO
+        vehicle.save(update_fields=["estado"])
+    return borrados

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{% if conductor %}Editar conductor{% else %}Nuevo conductor{% endif %}{% endblock %}
+{% block page_title %}{% if conductor %}Editar conductor{% else %}Nuevo conductor{% endif %}{% endblock %}
+{% block content %}
+<p class="eyebrow">Conductores</p>
+<h1>{% if conductor %}Editar conductor{% else %}Nuevo conductor{% endif %}</h1>
+{% if conductor %}<p class="meta-update">{{ conductor.documento }} · {{ conductor.get_estado_display }}</p>{% endif %}
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alerta"><p>{{ form.non_field_errors }}</p></div>
+  {% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      {{ form.nombre.label_tag }}{{ form.nombre }}{{ form.nombre.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.documento.label_tag }}{{ form.documento }}{{ form.documento.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.telefono.label_tag }}{{ form.telefono }}{{ form.telefono.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.estado.label_tag }}{{ form.estado }}{{ form.estado.errors }}
+    </div>
+  </div>
+  <div class="form-field">
+    {{ form.observaciones.label_tag }}{{ form.observaciones }}{{ form.observaciones.errors }}
+  </div>
+  <button type="submit" class="btn-primary">Guardar</button>
+  <a class="btn" href="{% url 'conductores:lista' %}">Cancelar</a>
+</form>
+{% endblock %}

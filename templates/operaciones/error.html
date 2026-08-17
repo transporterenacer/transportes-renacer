@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Operación no permitida{% endblock %}
+{% block content %}
+<p class="eyebrow">Transportes Renacer</p>
+<h1>Operación no permitida</h1>
+<div class="alerta">
+  <p>{{ mensaje }}</p>
+</div>
+<p><a class="btn" href="{% if volver_pk %}{% url volver volver_pk %}{% else %}{% url volver %}{% endif %}">Volver</a></p>
+{% endblock %}

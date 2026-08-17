@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Configuración{% endblock %}
+{% block page_title %}Configuración{% endblock %}
+{% block content %}
+<p class="eyebrow">Configuración</p>
+<h1>Opciones de configuración</h1>
+
+<div class="dash-cols">
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Catálogos</h3>
+    </div>
+    <p class="empty-txt">Administra puertos, generadores de carga y tipos de novedades.</p>
+    <a class="btn-primary" href="{% url 'catalogos:catalogos' %}">Abrir catálogos</a>
+  </div>
+
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Cambiar contraseña</h3>
+    </div>
+    <p class="empty-txt">Actualiza tu contraseña de acceso al sistema.</p>
+    <a class="btn-primary" href="{% url 'password_change' %}">Cambiar contraseña</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Catálogos{% endblock %}
+{% block page_title %}Catálogos{% endblock %}
+{% block content %}
+<p class="eyebrow">Configuración · Catálogos</p>
+<h1>Catálogos</h1>
+
+<div class="card">
+  <h3 class="card-title">Puertos</h3>
+  <form method="post" action="{% url 'catalogos:puerto_nuevo' %}" class="form-inline">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ puerto_form.nombre.label_tag }}{{ puerto_form.nombre }}</div>
+      <div class="form-field">{{ puerto_form.ciudad.label_tag }}{{ puerto_form.ciudad }}</div>
+    </div>
+    <button type="submit" class="btn-primary">Agregar puerto</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>Ciudad</th></tr></thead>
+    <tbody>
+      {% for p in puertos %}
+      <tr><td>{{ p.nombre }}</td><td>{{ p.ciudad|default:"—" }}</td></tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="2">Sin puertos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <h3 class="card-title">Generadores de carga</h3>
+  <form method="post" action="{% url 'catalogos:generador_nuevo' %}" class="form-inline">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ generador_form.nombre.label_tag }}{{ generador_form.nombre }}</div>
+      <div class="form-field">{{ generador_form.nit.label_tag }}{{ generador_form.nit }}</div>
+      <div class="form-field">{{ generador_form.contacto.label_tag }}{{ generador_form.contacto }}</div>
+      <div class="form-field">{{ generador_form.telefono.label_tag }}{{ generador_form.telefono }}</div>
+    </div>
+    <button type="submit" class="btn-primary">Agregar generador</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>NIT</th><th>Contacto</th><th>Teléfono</th></tr></thead>
+    <tbody>
+      {% for g in generadores %}
+      <tr><td>{{ g.nombre }}</td><td class="mono">{{ g.nit|default:"—" }}</td><td>{{ g.contacto|default:"—" }}</td><td class="mono">{{ g.telefono|default:"—" }}</td></tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="4">Sin generadores registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <h3 class="card-title">Tipos de novedades</h3>
+  <form method="post" action="{% url 'catalogos:categoria_nueva' %}" class="form-inline">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ categoria_form.nombre.label_tag }}{{ categoria_form.nombre }}</div>
+      <div class="form-field">{{ categoria_form.activa.label_tag }}{{ categoria_form.activa }}</div>
+    </div>
+    <button type="submit" class="btn-primary">Agregar categoría</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>Estado</th></tr></thead>
+    <tbody>
+      {% for c in categorias %}
+      <tr>
+        <td>{{ c.nombre }}</td>
+        <td>
+          {% if c.activa %}<span class="badge badge-ok">Activa</span>
+          {% else %}<span class="badge badge-off">Inactiva</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="2">Sin categorías registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

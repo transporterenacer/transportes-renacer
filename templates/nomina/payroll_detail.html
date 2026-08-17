@@ -1,39 +1,66 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}{{ payroll.numero }}{% endblock %}
 {% block content %}
-<p class="eyebrow">Liquidación</p>
+<p class="eyebrow">Nómina</p>
 <h1>{{ payroll.numero }}</h1>
-<p>Periodo: {{ payroll.periodo_inicio|date:"d/m/Y" }} – {{ payroll.periodo_fin|date:"d/m/Y" }}</p>
-<p>Estado: <span class="tag">{{ payroll.get_estado_display }}</span></p>
-<p>Total: <strong>${{ payroll.total }}</strong></p>
-{% if payroll.estado != 'pagado' %}
-  <form method="post" action="{% url 'nomina:marcar_pagada' payroll.pk %}">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-primary">Marcar como pagada</button>
-  </form>
-{% endif %}
-<h2>Resumen por conductor</h2>
-<table class="table">
-  <thead><tr><th>Conductor</th><th>Total</th><th>Abonos</th><th>Neto</th></tr></thead>
-  <tbody>
-  {% for fila in resumen %}
-    <tr>
-      <td>{{ fila.driver.nombre }}</td>
-      <td>${{ fila.total }}</td>
-      <td>${{ fila.abonos }}</td>
-      <td><strong>${{ fila.neto }}</strong></td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="4">Sin turnos en esta liquidación.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% if payroll.estado != 'pagado' %}
-<h2>Registrar abono a conductor</h2>
-<form method="post" action="{% url 'nomina:abono_nuevo' payroll.pk %}" class="card">
-  {% csrf_token %}
-  {{ abono_form.as_p }}
-  <button type="submit" class="btn btn-primary">Registrar abono</button>
-</form>
-{% endif %}
+<p class="meta-update">Período: {{ payroll.periodo_inicio|date:"d/m/Y" }} – {{ payroll.periodo_fin|date:"d/m/Y" }} · Datos hasta {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+
+<div class="card" style="margin-bottom:20px;">
+  <h3 class="card-title">Estado de la nómina</h3>
+  <div class="form-grid">
+    <div class="form-field">
+      <span class="kpi-label">Liquidado (bruto)</span>
+      <span class="kpi-value" style="font-size:1.4rem;">${{ estado.total|floatformat:0 }}</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Cubierto</span>
+      <span class="kpi-value" style="font-size:1.4rem;">${{ estado.cubierto|floatformat:0 }}</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Pendiente</span>
+      <span class="kpi-value warn" style="font-size:1.4rem;">${{ estado.pendiente|floatformat:0 }}</span>
+    </div>
+  </div>
+  <div class="prog-track">
+    <span class="prog-pct">{{ estado.porcentaje|floatformat:1 }}% cubierto</span>
+    <div class="prog-bar"><div class="prog-fill" style="width: {{ estado.porcentaje|stringformat:".1f" }}%;"></div></div>
+    <span class="prog-caption">{{ estado.conductores_pagados }} de {{ estado.conductores_total }} conductores al día</span>
+  </div>
+</div>
+
+{% if mensaje %}<div class="alerta"><p>{{ mensaje }}</p></div>{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h3 class="card-title" style="margin:0;">Conductores</h3>
+    <a class="btn" href="{% url 'nomina:exportar' payroll.pk %}">Exportar CSV</a>
+  </div>
+  <p class="meta-update">El período es solo trazabilidad: el pago se gestiona en el saldo acumulado de cada conductor, sin importar la semana.</p>
+  <table class="data-table">
+    <thead><tr><th>Conductor</th><th>Turnos</th><th>Horas</th><th>Bruto</th><th>Cubierto</th><th>Pendiente</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for fila in resumen %}
+      <tr>
+        <td><strong>{{ fila.driver.nombre }}</strong></td>
+        <td>{{ fila.turnos }}</td>
+        <td class="mono">{{ fila.horas|floatformat:1 }}</td>
+        <td class="mono">${{ fila.total|floatformat:0 }}</td>
+        <td class="mono">${{ fila.cubierto|floatformat:0 }}</td>
+        <td class="mono"><strong>${{ fila.pendiente|floatformat:0 }}</strong></td>
+        <td>
+          {% if fila.estado == "pagado" %}<span class="badge badge-ok">Al día</span>
+          {% elif fila.estado == "parcial" %}<span class="badge badge-warn">Abono parcial</span>
+          {% else %}<span class="badge badge-off">Pendiente</span>{% endif %}
+        </td>
+        <td class="table-actions">
+          <a href="{% url 'nomina:conductor' fila.driver.pk %}">Ver saldo</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr class="empty-row"><td colspan="8">Sin turnos en esta liquidación.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

@@ -2,22 +2,87 @@
 {% block title %}Nómina{% endblock %}
 {% block content %}
 <p class="eyebrow">Transportes Renacer</p>
-<h1>Liquidaciones de nómina</h1>
-<a class="btn btn-primary" href="{% url 'nomina:nueva' %}">Nueva liquidación</a>
-<table class="table">
-  <thead><tr><th>Número</th><th>Periodo</th><th>Estado</th><th>Total</th><th>Fecha pago</th></tr></thead>
-  <tbody>
-  {% for p in payrolls %}
-    <tr>
-      <td><a href="{% url 'nomina:detalle' p.pk %}">{{ p.numero }}</a></td>
-      <td>{{ p.periodo_inicio|date:"d/m/Y" }} – {{ p.periodo_fin|date:"d/m/Y" }}</td>
-      <td>{{ p.get_estado_display }}</td>
-      <td>${{ p.total }}</td>
-      <td>{{ p.fecha_pago|date:"d/m/Y"|default:"—" }}</td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="5">No hay liquidaciones.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<h1>Nómina</h1>
+<p class="meta-update">Datos de nómina actualizados hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+
+<div class="semana-nav">
+  <a class="btn" href="{% url 'nomina:lista' %}?lunes={{ semana_anterior_ini|date:"Y-m-d" }}">‹ Anterior</a>
+  <span class="semana-rango"><strong>{{ lunes|date:"d M Y" }}</strong> — <strong>{{ domingo|date:"d M Y" }}</strong></span>
+  <a class="btn" href="{% url 'nomina:lista' %}?lunes={{ semana_siguiente_ini|date:"Y-m-d" }}">Siguiente ›</a>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Pendiente acumulado</div>
+      <div class="kpi-value">${{ pendiente_global|floatformat:0 }}</div>
+      <div class="kpi-foot">saldo que se les debe a todos los conductores</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">account_balance_wallet</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Conductores con saldo</div>
+      <div class="kpi-value">{{ conductores_pendientes }}</div>
+      <div class="kpi-foot">pendientes de pago</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">badge</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Por liquidar esta semana</div>
+      <div class="kpi-value">${{ pendiente_periodo|floatformat:0 }}</div>
+      <div class="kpi-foot">turnos sin liquidar del {{ lunes|date:"d/m" }}–{{ domingo|date:"d/m" }}</div>
+    </div>
+    <span class="kpi-icon" data-tone="accent"><span class="material-symbols-outlined">payments</span></span>
+  </div>
+  {% if payroll_actual %}
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Periodo liquidado</div>
+      <div class="kpi-value">{{ estado_actual.conductores_pagados }}/{{ estado_actual.conductores_total }}</div>
+      <div class="kpi-foot">conductores al día · ${{ estado_actual.pendiente|floatformat:0 }} pendiente</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">check_circle</span></span>
+  </div>
+  {% endif %}
+</div>
+
+{% if alertas %}
+<div class="card" style="margin-bottom:20px;">
+  <h3 class="card-title">Atención</h3>
+  <div class="alerta-list">
+    {% for a in alertas %}
+      <div class="alerta-item"><span>⚠</span> {{ a.texto }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h3 class="card-title" style="margin:0;">Historial de nómina</h3>
+    <a class="btn-primary" href="{% url 'nomina:nueva' %}">Nueva liquidación</a>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>Número</th><th>Periodo</th><th>Conductores</th><th>Total</th><th>Estado</th></tr></thead>
+    <tbody>
+    {% for p in payrolls %}
+      <tr>
+        <td><a href="{% url 'nomina:detalle' p.pk %}"><strong>{{ p.numero }}</strong></a></td>
+        <td>{{ p.periodo_inicio|date:"d/m/Y" }} – {{ p.periodo_fin|date:"d/m/Y" }}</td>
+        <td>{{ p.conductor_count }}</td>
+        <td class="mono">${{ p.total|floatformat:0 }}</td>
+        <td>
+          {% if p.estado_derivado == "pagado" %}<span class="badge badge-ok">Cubierta</span>
+          {% elif p.estado_derivado == "parcial" %}<span class="badge badge-warn">Abono parcial</span>
+          {% else %}<span class="badge badge-idle">Pendiente</span>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr class="empty-row"><td colspan="5">No hay liquidaciones registradas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

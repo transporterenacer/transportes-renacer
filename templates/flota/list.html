@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Flota{% endblock %}
+{% block page_title %}Flota{% endblock %}
+{% block content %}
+<div class="kpi-grid">
+  <div class="card kpi-card"><div class="kpi-label">Total mulas</div><div class="kpi-value">{{ resumen.total }}</div></div>
+  <div class="card kpi-card ok"><div class="kpi-label">En operación</div><div class="kpi-value ok">{{ resumen.en_operacion }}</div></div>
+  <div class="card kpi-card"><div class="kpi-label">Disponibles</div><div class="kpi-value">{{ resumen.disponibles }}</div></div>
+  <div class="card kpi-card warn"><div class="kpi-label">En taller</div><div class="kpi-value warn">{{ resumen.en_taller }}</div></div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <h3 class="card-title" style="margin:0;">Vehículos</h3>
+    <a class="btn-primary" href="{% url 'flota:nuevo' %}">+ Nuevo vehículo</a>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for v in vehiculos %}
+      <tr>
+        <td class="mono"><strong>{{ v.placa }}</strong></td>
+        <td>{{ v.marca }}</td>
+        <td>{{ v.modelo }}</td>
+        <td class="mono">{{ v.anio|default:"—" }}</td>
+        <td>
+          {% if v.estado == "disponible" %}<span class="badge badge-idle">{{ v.get_estado_display }}</span>
+          {% elif v.estado == "en_operacion" %}<span class="badge badge-ok">{{ v.get_estado_display }}</span>
+          {% elif v.estado == "en_taller" %}<span class="badge badge-warn">{{ v.get_estado_display }}</span>
+          {% else %}<span class="badge badge-off">{{ v.get_estado_display }}</span>{% endif %}
+        </td>
+        <td class="table-actions">
+          <a href="{% url 'flota:editar' v.pk %}">Editar</a>
+          <a href="{% url 'documentos:vehicle' v.pk %}">Expediente</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr class="empty-row"><td colspan="6">No hay vehículos registrados.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

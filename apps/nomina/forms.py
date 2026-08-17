@@ -18,4 +18,23 @@ class PeriodoForm(forms.Form):
 class DriverAdvanceForm(forms.ModelForm):
     class Meta:
         model = DriverAdvance
-        fields = ["driver", "valor", "descripcion", "fecha"]
+        fields = ["driver", "fecha", "valor", "metodo", "descripcion"]
+        widgets = {"fecha": forms.DateInput(format="%d/%m/%Y", attrs={"class": "date-input"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fecha"].input_formats = ["%d/%m/%Y", "%Y-%m-%d"]
+        self.fields["valor"].localize = True
+        self.fields["metodo"].initial = DriverAdvance.EFECTIVO
+
+
+class DriverPagoForm(forms.Form):
+    valor = forms.DecimalField(label="Valor del pago", max_digits=14, decimal_places=0)
+    metodo = forms.ChoiceField(
+        choices=DriverAdvance.METODOS, label="Método de pago"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["metodo"].initial = DriverAdvance.EFECTIVO
+        self.fields["valor"].localize = True

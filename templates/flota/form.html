@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{% if vehiculo %}Editar vehículo{% else %}Nuevo vehículo{% endif %}{% endblock %}
+{% block page_title %}{% if vehiculo %}Editar vehículo{% else %}Nuevo vehículo{% endif %}{% endblock %}
+{% block content %}
+<p class="eyebrow">Flota</p>
+<h1>{% if vehiculo %}Editar vehículo{% else %}Nuevo vehículo{% endif %}</h1>
+{% if vehiculo %}<p class="meta-update">{{ vehiculo.placa }} · {{ vehiculo.get_estado_display }}</p>{% endif %}
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alerta"><p>{{ form.non_field_errors }}</p></div>
+  {% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      {{ form.placa.label_tag }}{{ form.placa }}{{ form.placa.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.marca.label_tag }}{{ form.marca }}{{ form.marca.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.modelo.label_tag }}{{ form.modelo }}{{ form.modelo.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.anio.label_tag }}{{ form.anio }}{{ form.anio.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.estado.label_tag }}{{ form.estado }}{{ form.estado.errors }}
+    </div>
+  </div>
+  <div class="form-field">
+    {{ form.observaciones.label_tag }}{{ form.observaciones }}{{ form.observaciones.errors }}
+  </div>
+  <button type="submit" class="btn-primary">Guardar</button>
+  <a class="btn" href="{% url 'flota:lista' %}">Cancelar</a>
+</form>
+{% endblock %}

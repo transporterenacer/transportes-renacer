@@ -41,3 +41,8 @@ class ShiftForm(forms.Form):
     novedad_descripcion = forms.CharField(
         required=False, widget=forms.Textarea, label="Detalle de la novedad"
     )
+    liberar_mula = forms.BooleanField(
+        required=False,
+        label="Este es el último turno de esta mula",
+        help_text="Al guardar, retira la mula de esta operación y la deja disponible.",
+    )

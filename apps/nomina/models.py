@@ -42,6 +42,7 @@ class PayrollItem(AuditMixin):
         Shift, on_delete=models.PROTECT, related_name="payroll_items", unique=True
     )
     valor = models.DecimalField(max_digits=14, decimal_places=0)
+    pagado = models.DecimalField(max_digits=14, decimal_places=0, default=0)
 
     class Meta:
         verbose_name = "Item de liquidación"
@@ -52,12 +53,30 @@ class PayrollItem(AuditMixin):
 
 
 class DriverAdvance(AuditMixin):
+    ADELANTO = "adelanto"
+    PAGO = "pago"
+
+    TIPOS = [
+        (ADELANTO, "Adelanto"),
+        (PAGO, "Pago"),
+    ]
+
+    EFECTIVO = "efectivo"
+    TRANSFERENCIA = "transferencia"
+
+    METODOS = [
+        (EFECTIVO, "Efectivo"),
+        (TRANSFERENCIA, "Transferencia"),
+    ]
+
     driver = models.ForeignKey(
         Driver, on_delete=models.PROTECT, related_name="abonos"
     )
     fecha = models.DateField(default=timezone.localdate)
     valor = models.DecimalField(max_digits=14, decimal_places=0)
     descripcion = models.CharField(max_length=200, blank=True, default="")
+    tipo = models.CharField(max_length=20, choices=TIPOS, default=ADELANTO)
+    metodo = models.CharField(max_length=20, choices=METODOS, default=EFECTIVO)
     payroll = models.ForeignKey(
         Payroll, null=True, blank=True, on_delete=models.SET_NULL, related_name="abonos"
     )

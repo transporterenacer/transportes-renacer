@@ -14,6 +14,7 @@ from apps.documentos.services import (
     alertas_vencimiento_documentos,
     cargar_documento,
     desactivar_conductor as desactivar_conductor_service,
+    desactivar_vehiculo as desactivar_vehiculo_service,
     documentos_faltantes,
     documentos_vigentes_entidad,
     estado_documento,
@@ -192,6 +193,15 @@ def desactivar_conductor(request, pk):
         desactivar_conductor_service(driver, usuario=request.user)
         return redirect("documentos:driver", pk=driver.pk)
     return render(request, "documentos/desactivar_confirm.html", {"driver": driver})
+
+
+@login_required
+def desactivar_vehiculo(request, pk):
+    vehicle = get_object_or_404(Vehicle, pk=pk)
+    if request.method == "POST":
+        desactivar_vehiculo_service(vehicle, usuario=request.user)
+        return redirect("documentos:vehicle", pk=vehicle.pk)
+    return render(request, "documentos/desactivar_vehicle_confirm.html", {"vehicle": vehicle})
 
 
 @login_required

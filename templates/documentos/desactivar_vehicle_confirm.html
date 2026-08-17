@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Desactivar vehículo{% endblock %}
+{% block content %}
+<p class="eyebrow">Gestión documental</p>
+<h1>Desactivar {{ vehicle.placa }}</h1>
+<p>El vehículo será marcado como fuera de servicio y sus documentos (SOAT, técnico-mecánica, etc.) serán eliminados permanentemente del almacenamiento. La trazabilidad del vehículo y su historial en la base de datos se conservará.</p>
+<form method="post" class="card">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Confirmar</button>
+  <a class="btn" href="{% url 'documentos:vehicle' vehicle.pk %}">Cancelar</a>
+</form>
+{% endblock %}

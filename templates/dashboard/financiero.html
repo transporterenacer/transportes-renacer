@@ -20,17 +20,18 @@
 
 <h2>Valor por operación</h2>
 <table class="table">
-  <thead><tr><th>Operación</th><th>Facturado</th><th>Abonado</th><th>Saldo</th></tr></thead>
+  <thead><tr><th>Operación</th><th>Valor generado</th><th>Abonado</th><th>Saldo</th><th>Horas pendientes</th></tr></thead>
   <tbody>
   {% for row in kpis.por_operacion %}
     <tr>
       <td><a href="{% url 'operaciones:detalle' row.pk %}">{{ row.codigo }}</a></td>
-      <td>${{ row.facturado|intcomma }}</td>
+      <td>${{ row.valor_generado|intcomma }}</td>
       <td>${{ row.abonado|intcomma }}</td>
       <td><strong>${{ row.saldo|intcomma }}</strong></td>
+      <td>{{ row.horas_pendientes|floatformat:1 }}</td>
     </tr>
   {% empty %}
-    <tr><td colspan="4">Sin facturación registrada.</td></tr>
+    <tr><td colspan="5">Sin facturación registrada.</td></tr>
   {% endfor %}
   </tbody>
 </table>

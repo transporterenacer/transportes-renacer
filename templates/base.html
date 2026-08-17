@@ -1,31 +1,193 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Transportes Renacer{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/flaticon.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <header class="topbar">
-    <div class="topbar-brand">Transportes Renacer</div>
-    <nav class="topbar-nav">
-      {% if user.is_authenticated %}
-        <a class="topbar-link" href="{% url 'documentos:panel' %}">Documentos</a>
-        <span class="topbar-user">{{ user.get_full_name|default:user.username }}</span>
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-link">Salir</button>
-        </form>
-      {% endif %}
+
+<body class="{% block body_class %}{% endblock %}">
+  {% if user.is_authenticated %}
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a class="brand-btn" href="{% url 'dashboard:inicio' %}">
+        <img class="brand-logo" src="{% static 'img/logo_con_fondo.jpg' %}" alt="Transportes Renacer">
+      </a>
+    </div>
+    <nav class="nav-container">
+      <a class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'inicio' %}active{% endif %}"
+        href="{% url 'dashboard:inicio' %}">
+        <span class="material-symbols-outlined">dashboard</span> Inicio
+      </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' %}active{% endif %}"
+        href="{% url 'operaciones:lista' %}">
+        <span class="material-symbols-outlined">conveyor_belt</span> Operaciones
+      </a>
+    <a class="nav-link {% if request.resolver_match.url_name == 'gantt_semana' %}active{% endif %}"
+       href="{% url 'dashboard:gantt_semana' %}">
+      <span class="material-symbols-outlined">timeline</span> Línea de tiempo
+    </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'flota' %}active{% endif %}"
+        href="{% url 'flota:lista' %}">
+        <span class="material-symbols-outlined">local_shipping</span> Flota
+      </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'conductores' %}active{% endif %}"
+        href="{% url 'conductores:lista' %}">
+        <span class="material-symbols-outlined">badge</span> Conductores
+      </a>
+      <div class="sidebar-sep"></div>
+      <a class="nav-link {% if request.resolver_match.app_name == 'nomina' %}active{% endif %}"
+        href="{% url 'nomina:lista' %}">
+        <span class="material-symbols-outlined">payments</span> Nómina
+      </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'facturacion' %}active{% endif %}"
+        href="{% url 'facturacion:lista' %}">
+        <span class="material-symbols-outlined">receipt_long</span> Facturación
+      </a>
+      <div class="sidebar-sep"></div>
+      <a class="nav-link {% if request.resolver_match.app_name == 'documentos' %}active{% endif %}"
+        href="{% url 'documentos:panel' %}">
+        <span class="material-symbols-outlined">folder_shared</span> Documentos
+      </a>
+      <div class="sidebar-sep"></div>
+    <a class="nav-link {% if request.resolver_match.app_name == 'catalogos' %}active{% endif %}"
+       href="{% url 'catalogos:configuracion' %}">
+      <span class="material-symbols-outlined">settings</span> Configuración
+    </a>
     </nav>
-  </header>
-  <main class="main">
-    {% block content %}{% endblock %}
-  </main>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong>{{ request.user.get_full_name|default:request.user.username }}</strong></div>
+      <form action="{% url 'logout' %}" method="post" style="margin:0;">
+        {% csrf_token %}
+        <button class="logout-btn" type="submit">Salir</button>
+      </form>
+    </div>
+  </aside>
+  {% endif %}
+
+  <div class="main-wrapper">
+    {% if user.is_authenticated %}
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="sidebar-toggle" class="icon-btn" type="button" aria-label="Mostrar u ocultar menú"
+          aria-expanded="true">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <div class="page-title">{% block page_title %}Transportes Renacer{% endblock %}</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input class="search-input" type="text" placeholder="Buscar...">
+        </div>
+      {% block topbar_action %}
+      <a class="btn-primary" href="{% url 'operaciones:turno_operacion' %}">+ Agregar turno</a>
+      {% endblock %}
+        <div class="notif-wrap">
+          <button class="icon-btn notif-btn" id="notif-toggle" type="button" aria-label="Notificaciones"
+            aria-expanded="false">
+            <span class="material-symbols-outlined">notifications</span>
+            {% if alertas_count %}<span class="badge-dot"></span>{% endif %}
+          </button>
+          <div class="notif-panel" id="notif-panel" hidden>
+            <div class="notif-head">
+              <span>Alertas de documentos</span>
+              <span class="notif-count">{{ alertas_count }}</span>
+            </div>
+            <div class="notif-list">
+              {% for a in alertas %}
+              <div class="notif-item {{ a.estado }}">
+                <span class="notif-emoji">{% if a.estado == 'vencido' %}🔴{% else %}🟡{% endif %}</span>
+                <div class="notif-body">
+                  <span class="notif-title"><strong>{{ a.vehiculo.placa }}</strong> — {{ a.tipo }}</span>
+                  <span class="notif-sub">{{ a.fecha_vencimiento|date:"d/m/Y" }} ({{ a.dias }} días)</span>
+                </div>
+              </div>
+              {% empty %}
+              <div class="notif-item">
+                <span class="notif-body notif-empty">Sin alertas de vencimiento.</span>
+              </div>
+              {% endfor %}
+            </div>
+            <a class="notif-footer" href="{% url 'dashboard:vencimientos' %}">Ver todas →</a>
+          </div>
+        </div>
+      </div>
+    </header>
+    {% endif %}
+    <main>
+      {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+        <div class="alerta">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    {% if user.is_authenticated %}
+    <footer>
+      &copy; {% now "Y" %} Transportes Renacer — Sistema de Gestión de Transporte. Barranquilla, Colombia.
+    </footer>
+    {% endif %}
+  </div>
   {% block scripts %}{% endblock %}
+  <script>
+    (function () {
+      var KEY = 'tr_sidebar_collapsed';
+      var btn = document.getElementById('sidebar-toggle');
+      if (!btn) return;
+      var body = document.body;
+      function apply(state) {
+        body.classList.toggle('sidebar-collapsed', state);
+        btn.setAttribute('aria-expanded', state ? 'false' : 'true');
+      }
+      apply(localStorage.getItem(KEY) === '1');
+      btn.addEventListener('click', function () {
+        var next = !body.classList.contains('sidebar-collapsed');
+        apply(next);
+        localStorage.setItem(KEY, next ? '1' : '0');
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var toggle = document.getElementById('notif-toggle');
+      var panel = document.getElementById('notif-panel');
+      if (!toggle || !panel) return;
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', function (e) {
+        if (!panel.hidden && !panel.contains(e.target) && e.target !== toggle) {
+          panel.hidden = true;
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !panel.hidden) {
+          panel.hidden = true;
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
 </body>
+
 </html>

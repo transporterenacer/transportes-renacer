@@ -198,8 +198,8 @@
 
   agregarInteraccion();
 
-  desdeInput.addEventListener("change", cargar);
-  hastaInput.addEventListener("change", cargar);
-  mulaSelect.addEventListener("change", cargar);
+  if (desdeInput) desdeInput.addEventListener("change", cargar);
+  if (hastaInput) hastaInput.addEventListener("change", cargar);
+  if (mulaSelect) mulaSelect.addEventListener("change", cargar);
   inicializar();
 })();

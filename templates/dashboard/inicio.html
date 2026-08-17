@@ -1,10 +1,19 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load l10n %}
 {% block title %}Panel de control{% endblock %}
+{% block page_title %}Panel de control{% endblock %}
 {% block content %}
-<p class="eyebrow">Transportes Renacer · Dashboard</p>
-<h1>Panel de control</h1>
-<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+<div class="dash-hero">
+  <div>
+    <p class="dash-hello">Buenos días, {{ request.user.get_full_name|default:request.user.username }}</p>
+    <p class="dash-sub">Centro de control operativo</p>
+  </div>
+  <div class="dash-meta">
+    <p>{{ hoy|date:"l d M Y" }}</p>
+    <p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+  </div>
+</div>
 
 <nav class="dashboard-nav">
   <a href="{% url 'dashboard:vencimientos' %}">Vencimientos</a>
@@ -15,32 +24,120 @@
 </nav>
 
 <div class="kpi-grid">
-  <div class="kpi"><span class="kpi-value">{{ kpis.operaciones_activas }}</span><span class="kpi-label">Operaciones activas</span></div>
-  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_en_operacion }}</span><span class="kpi-label">Mulas en operación</span></div>
-  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_disponibles }}</span><span class="kpi-label">Mulas disponibles</span></div>
-  <div class="kpi"><span class="kpi-value">{{ kpis.mulas_en_taller }}</span><span class="kpi-label">Mulas en taller</span></div>
-  <div class="kpi"><span class="kpi-value">{{ kpis.horas_trabajadas }}</span><span class="kpi-label">Horas trabajadas</span></div>
-  <div class="kpi"><span class="kpi-value">{{ kpis.horas_facturables }}</span><span class="kpi-label">Horas facturables</span></div>
-  <div class="kpi"><span class="kpi-value">${{ kpis.valor_generado|intcomma }}</span><span class="kpi-label">Valor generado</span></div>
-  <div class="kpi"><span class="kpi-value">${{ kpis.abonos|intcomma }}</span><span class="kpi-label">Abonos</span></div>
-  <div class="kpi"><span class="kpi-value">${{ kpis.saldo_pendiente|intcomma }}</span><span class="kpi-label">Saldo pendiente</span></div>
-  <div class="kpi"><span class="kpi-value">${{ kpis.nomina_semanal_pendiente|intcomma }}</span><span class="kpi-label">Nómina pendiente</span></div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Operaciones</div>
+      <div class="kpi-value">{{ kpis.operaciones_activas }}</div>
+      <div class="kpi-foot">activas</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">directions_boat</span></span>
+  </div>
+  <div class="card kpi-card ok">
+    <div class="kpi-content">
+      <div class="kpi-label">Mulas</div>
+      <div class="kpi-value">{{ flota.en_operacion }}<span class="kpi-slash">/{{ flota.total }}</span></div>
+      <div class="kpi-foot">en operación</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">local_shipping</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Horas</div>
+      <div class="kpi-value">{{ kpis.horas_trabajadas|floatformat:0 }}<span class="kpi-unit"> h</span></div>
+      <div class="kpi-foot">esta semana</div>
+    </div>
+    <span class="kpi-icon" data-tone="accent"><span class="material-symbols-outlined">schedule</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Nómina pendiente</div>
+      <div class="kpi-value">${{ kpis.nomina_pendiente|intcomma }}</div>
+      <div class="kpi-foot">acumulado por pagar</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">payments</span></span>
+  </div>
 </div>
 
-<h2>Operaciones activas</h2>
-<table class="table">
-  <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th></tr></thead>
-  <tbody>
-  {% for op in operaciones_activas %}
-    <tr>
-      <td><a href="{% url 'operaciones:detalle' op.pk %}">{{ op.codigo }}</a></td>
-      <td>{{ op.buque }}</td>
-      <td>{{ op.generador_de_carga }}</td>
-      <td>{{ op.puerto }}</td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="4">No hay operaciones activas.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="dash-cols">
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Operaciones activas</h3>
+      <a class="dash-link" href="{% url 'operaciones:lista' %}">Ver todas →</a>
+    </div>
+    <div class="prog-list">
+      {% for op in operaciones_activas %}
+      <div class="prog-item">
+        <div class="prog-head">
+          <a class="prog-name" href="{% url 'operaciones:detalle' op.pk %}">{{ op.buque }}</a>
+          <span class="prog-pct mono">{{ op.total_horas|floatformat:0 }}h · {{ op.total_horas|floatformat:0 }}%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width: {{ op.total_horas|stringformat:".0f" }}%;"></div></div>
+      </div>
+      {% empty %}
+      <p class="empty-txt">No hay operaciones activas.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Estado de la flota</h3>
+      <a class="dash-link" href="{% url 'flota:lista' %}">Ver flota →</a>
+    </div>
+    <div class="flota-list">
+      <div class="flota-row"><span class="flota-dot ok"></span><span class="flota-label">En operación</span><span class="flota-num">{{ flota.en_operacion }}</span></div>
+      <div class="flota-row"><span class="flota-dot idle"></span><span class="flota-label">Disponible</span><span class="flota-num">{{ flota.disponibles }}</span></div>
+      <div class="flota-row"><span class="flota-dot warn"></span><span class="flota-label">En taller</span><span class="flota-num">{{ flota.en_taller }}</span></div>
+      <div class="flota-row"><span class="flota-dot off"></span><span class="flota-label">Fuera de servicio</span><span class="flota-num">{{ flota.fuera_de_servicio }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="dash-cols">
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Horas por operación</h3>
+    </div>
+    <div class="prog-list">
+      {% for r in horas_por_operacion %}
+      <div class="prog-item">
+        <div class="prog-head">
+          <span class="prog-name">{{ r.operation__buque|default:r.operation__codigo }}</span>
+          <span class="prog-pct mono">{{ r.horas|floatformat:0 }} h</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width: 100%;"></div></div>
+      </div>
+      {% empty %}
+      <p class="empty-txt">Sin turnos realizados.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="dash-card-head">
+      <h3 class="card-title">Facturación / abonos</h3>
+      <a class="dash-link" href="{% url 'dashboard:financiero' %}">Ver →</a>
+    </div>
+    <div class="fin-resumen">
+      <div class="fin-row"><span class="fin-label">Trabajado</span><span class="fin-val">${{ kpis.valor_generado|intcomma }}</span></div>
+      <div class="fin-row"><span class="fin-label">Abonos</span><span class="fin-val">${{ kpis.abonos|intcomma }}</span></div>
+      <div class="fin-sep"></div>
+      <div class="fin-row saldo"><span class="fin-label">Saldo</span><span class="fin-val">${{ kpis.saldo_pendiente|intcomma }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 class="card-title">Alertas y atención</h3>
+  <div class="alerta-list">
+    {% for a in alertas %}
+      <div class="alerta-item {% if a.estado == 'vencido' %}vencido{% else %}proximo{% endif %}">
+        <span>{% if a.estado == 'vencido' %}🔴{% else %}🟠{% endif %}</span>
+        <span><strong>{{ a.vehiculo.placa }}</strong> — {{ a.tipo }} vence en {{ a.dias }} días ({{ a.fecha_vencimiento|date:"d/m/Y" }})</span>
+      </div>
+    {% empty %}
+      <p class="empty-txt">Sin alertas de vencimiento.</p>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}

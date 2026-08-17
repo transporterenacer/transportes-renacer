@@ -3,60 +3,177 @@
 {% block content %}
 <p class="eyebrow">Facturación</p>
 <h1>{{ operation.buque }}</h1>
-<p><strong>{{ operation.codigo }}</strong> · Tarifa: ${{ operation.tarifa_hora }}/h</p>
+<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+<p><strong>{{ operation.codigo }}</strong> · Tarifa: ${{ operation.tarifa_hora|floatformat:0 }}/h · <a href="{% url 'facturacion:lista' %}">Volver a facturación</a></p>
 
-<form method="post" action="{% url 'facturacion:generar' operation.pk %}">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-primary">Generar facturación desde turnos</button>
+<div class="kpi-grid kpi-grid--factura">
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Valor generado</div>
+      <div class="kpi-value">${{ info.valor_generado|floatformat:0 }}</div>
+      <div class="kpi-foot">turnos realizados × tarifa</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">payments</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Total relacionado</div>
+      <div class="kpi-value">${{ info.valor_relacionado|floatformat:0 }}</div>
+      <div class="kpi-foot">{{ info.horas_relacionadas|floatformat:1 }} h enviadas al generador</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">send</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Abonos recibidos</div>
+      <div class="kpi-value">${{ info.abonado|floatformat:0 }}</div>
+      <div class="kpi-foot">recibido del generador</div>
+    </div>
+    <span class="kpi-icon" data-tone="accent"><span class="material-symbols-outlined">savings</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Saldo por recibir</div>
+      <div class="kpi-value {% if info.saldo %}warn{% endif %}">${{ info.saldo|floatformat:0 }}</div>
+      <div class="kpi-foot">valor generado − abonos recibidos</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">hourglass_empty</span></span>
+  </div>
+</div>
+
+{% if fifo.anticipo %}
+<div class="alerta">
+  <p><strong>Saldo a favor / anticipo: ${{ fifo.anticipo|floatformat:0 }}</strong>. Los abonos excedieron lo relacionado y este monto se aplicará automáticamente a las futuras relaciones.</p>
+</div>
+{% endif %}
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px;">
+  <a class="btn" href="{% url 'facturacion:csv' operation.pk %}">Descargar detalle (CSV)</a>
+</div>
+
+<h2>Enviar turnos al generador (relación)</h2>
+<p class="meta-update">Marca los turnos realizados que vas a enviar. Cada envío genera una nueva relación ({{ operation.codigo }}). El valor generado y el saldo no cambian: siempre se calculan desde los turnos realizados.</p>
+<form method="get" action="{% url 'facturacion:detalle' operation.pk %}" style="margin-bottom:12px;">
+  <div class="form-grid">
+    <div class="form-field">
+      <label for="desde">Desde</label>
+      <input type="date" id="desde" name="desde"{% if desde %} value="{{ desde }}"{% endif %}>
+    </div>
+    <div class="form-field">
+      <label for="hasta">Hasta</label>
+      <input type="date" id="hasta" name="hasta"{% if hasta %} value="{{ hasta }}"{% endif %}>
+    </div>
+  </div>
+  <button type="submit" class="btn">Filtrar turnos</button>
+  {% if desde or hasta %}<a class="btn" href="{% url 'facturacion:detalle' operation.pk %}">Quitar filtro</a>{% endif %}
 </form>
-<a class="btn" href="{% url 'facturacion:csv' operation.pk %}">Descargar CSV</a>
+{% if disponibles %}
+<form method="post" action="{% url 'facturacion:relacion_nueva' operation.pk %}" id="form-relacion">
+  {% csrf_token %}
+  <table class="table">
+    <thead><tr>
+      <th><label class="checkbox-label"><input type="checkbox" id="seleccionar-todos"> Todos</label></th>
+      <th>Fecha</th><th>Mula</th><th>Turno</th><th>Horas</th>
+    </tr></thead>
+    <tbody>
+    {% for shift in disponibles %}
+      <tr>
+        <td><label class="checkbox-label"><input type="checkbox" name="shift_ids" value="{{ shift.pk }}"> Seleccionar</label></td>
+        <td>{{ shift.fecha_inicio|date:"d/m/Y" }}</td>
+        <td class="mono">{{ shift.vehicle.placa }}</td>
+        <td>{{ shift.get_tipo_display }}</td>
+        <td class="mono">{{ shift.horas_trabajadas|floatformat:1 }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit" class="btn-primary" style="margin-top:12px;">Enviar turnos seleccionados</button>
+</form>
+<p class="meta-update">{{ disponibles|length }} turno(s) por relacionar{% if relacionados_count %}. {{ relacionados_count }} ya relacionado(s) en este rango{% endif %}.</p>
+{% else %}
+<div class="alerta">
+  <p>
+    No hay turnos realizados sin relacionar{% if desde or hasta %} en este rango{% endif %}.
+    {% if turnos %}{{ turnos|length }} turno(s) de esta operación ya fueron enviados al generador.{% else %}Esta operación no tiene turnos en estado realizado.{% endif %}
+    Marca otro rango de fechas o consulta otra operación.
+  </p>
+</div>
+{% endif %}
 
-<h2>Totales</h2>
+<h2>Relaciones de horas</h2>
+<p class="meta-update">Los abonos se aplican por orden de envío (FIFO).</p>
+{% if fifo.paquetes %}
 <table class="table">
+  <thead><tr><th>Relación</th><th>Fecha de envío</th><th>Turnos</th><th>Horas</th><th>Total a cobrar</th><th>Cobrado</th><th>Saldo pendiente</th><th>Estado</th><th></th></tr></thead>
   <tbody>
-    <tr><th>Facturado</th><td>${{ facturado }}</td></tr>
-    <tr><th>Abonado</th><td>${{ abonado }}</td></tr>
-    <tr><th>Saldo</th><td><strong>${{ saldo }}</strong></td></tr>
-  </tbody>
-</table>
-
-<h2>Registros de facturación</h2>
-<table class="table">
-  <thead><tr><th>Fecha</th><th>Mula</th><th>Turno</th><th>Horas</th><th>Valor</th><th>Estado</th></tr></thead>
-  <tbody>
-  {% for br in operation.billing_records.all %}
+  {% for paquete in fifo.paquetes %}
     <tr>
-      <td>{{ br.fecha|date:"d/m/Y" }}</td>
-      <td>{{ br.shift.vehicle.placa|default:"—" }}</td>
-      <td>{{ br.shift.get_tipo_display|default:"—" }}</td>
-      <td>{{ br.horas }}</td>
-      <td>${{ br.valor }}</td>
-      <td><span class="tag">{{ br.get_estado_display }}</span></td>
+      <td class="mono"><strong>{{ paquete.numero }}</strong></td>
+      <td>{{ paquete.fecha|date:"d/m/Y" }}</td>
+      <td>{{ paquete.turnos }}</td>
+      <td class="mono">{{ paquete.horas|floatformat:1 }} h</td>
+      <td class="mono">${{ paquete.valor|floatformat:0 }}</td>
+      <td class="mono">${{ paquete.cobrado|floatformat:0 }}</td>
+      <td class="mono {% if paquete.pendiente %}warn{% endif %}">${{ paquete.pendiente|floatformat:0 }}</td>
+      <td>
+        {% if paquete.estado == "pagada" %}<span class="badge badge-ok">Pagada</span>
+        {% elif paquete.estado == "parcial" %}<span class="badge badge-idle">Parcial</span>
+        {% else %}<span class="badge badge-warn">Pendiente</span>{% endif %}
+      </td>
+      <td><a class="btn" href="{% url 'facturacion:relacion_detalle' operation.pk paquete.numero %}">Ver detalle</a></td>
     </tr>
-  {% empty %}
-    <tr><td colspan="6">Sin registros de facturación. Genere la facturación desde los turnos realizados.</td></tr>
   {% endfor %}
   </tbody>
 </table>
+{% else %}
+<div class="alerta"><p>Sin relaciones enviadas. Envía turnos al generador para crear una relación.</p></div>
+{% endif %}
 
 <h2>Abonos del generador de carga</h2>
-<form method="post" action="{% url 'facturacion:abono' operation.pk %}" class="card">
+<form method="post" action="{% url 'facturacion:abono' operation.pk %}" class="card" style="margin-bottom:16px;">
   {% csrf_token %}
-  {{ abono_form.as_p }}
-  <button type="submit" class="btn btn-primary">Registrar abono</button>
+  <div class="form-grid">
+    <div class="form-field">{{ abono_form.fecha.label_tag }}{{ abono_form.fecha }}</div>
+    <div class="form-field">{{ abono_form.valor.label_tag }}{{ abono_form.valor }}</div>
+    <div class="form-field">{{ abono_form.metodo.label_tag }}{{ abono_form.metodo }}</div>
+  </div>
+  <div class="form-field">{{ abono_form.observaciones.label_tag }}{{ abono_form.observaciones }}</div>
+  {% if abono_form.errors %}<div class="alerta"><p>{{ abono_form.errors }}</p></div>{% endif %}
+  <button type="submit" class="btn-primary">Registrar abono</button>
 </form>
 <table class="table">
-  <thead><tr><th>Fecha</th><th>Valor</th><th>Observaciones</th></tr></thead>
+  <thead><tr><th>Fecha</th><th>Método</th><th>Valor</th><th>Observaciones</th></tr></thead>
   <tbody>
-  {% for abono in operation.client_payments.all %}
+  {% for abono in abonos %}
     <tr>
       <td>{{ abono.fecha|date:"d/m/Y" }}</td>
-      <td>${{ abono.valor }}</td>
-      <td>{{ abono.observaciones }}</td>
+      <td>{{ abono.get_metodo_display }}</td>
+      <td class="mono">${{ abono.valor|floatformat:0 }}</td>
+      <td>{{ abono.observaciones|default:"—" }}</td>
     </tr>
   {% empty %}
-    <tr><td colspan="3">Sin abonos registrados.</td></tr>
+    <tr><td colspan="4">Sin abonos registrados.</td></tr>
   {% endfor %}
   </tbody>
 </table>
+<p class="meta-update">Saldo por recibir: <strong>${{ info.saldo|floatformat:0 }}</strong></p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var all = document.getElementById('seleccionar-todos');
+  if (!all) return;
+  var cajas = Array.prototype.slice.call(document.querySelectorAll('input[name="shift_ids"]'));
+  function refrescar() {
+    all.checked = cajas.length > 0 && cajas.every(function (c) { return c.checked; });
+    all.indeterminate = cajas.some(function (c) { return c.checked; }) && !all.checked;
+  }
+  all.addEventListener('change', function () {
+    cajas.forEach(function (c) { c.checked = all.checked; });
+  });
+  cajas.forEach(function (c) { c.addEventListener('change', refrescar); });
+  refrescar();
+})();
+</script>
 {% endblock %}

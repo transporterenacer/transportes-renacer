@@ -31,4 +31,8 @@
   {% endfor %}
   </tbody>
 </table>
+
+{% if vehicle.estado != "fuera_de_servicio" %}
+<a class="btn btn-danger" href="{% url 'documentos:desactivar_vehiculo' vehicle.pk %}">Desactivar vehículo</a>
+{% endif %}
 {% endblock %}

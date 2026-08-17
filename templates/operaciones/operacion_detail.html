@@ -4,15 +4,44 @@
 <p class="eyebrow">Operación</p>
 <h1>{{ operation.buque }}</h1>
 <p><strong>{{ operation.codigo }}</strong> · {{ operation.generador_de_carga }} · {{ operation.puerto }}</p>
-<p>Meta: {{ operation.meta_horas }} h · Tarifa: ${{ operation.tarifa_hora }}/h · Turno día: ${{ operation.valor_turno_dia }}</p>
+<p>Meta: {{ operation.meta_horas|floatformat:1 }} h · Tarifa: ${{ operation.tarifa_hora|floatformat:0 }}/h · Turno día: ${{ operation.valor_turno_dia|floatformat:0 }}</p>
 <h2>Mulas asignadas</h2>
-<ul>
+<div class="mulas-list">
   {% for mula in operation.mulas.all %}
-    <li>{{ mula.vehicle.placa }}{% if mula.activa %} · activa{% endif %}</li>
+    <div class="mula-item">
+      <span class="mono"><strong>{{ mula.vehicle.placa }}</strong></span>
+      <span class="mula-model">{{ mula.vehicle.marca }} {{ mula.vehicle.modelo }}</span>
+      {% if mula.activa %}
+        <span class="badge badge-ok">En operación</span>
+        <form method="post" action="{% url 'operaciones:mula_liberar' operation.pk mula.vehicle.pk %}"
+              onsubmit="return confirm('¿Retirar la mula {{ mula.vehicle.placa }} de esta operación? Quedará disponible.');">
+          {% csrf_token %}
+          <button type="submit" class="btn-link btn-retirar">Retirar mula</button>
+        </form>
+      {% else %}
+        <span class="badge badge-idle">Retirada</span>
+      {% endif %}
+    </div>
   {% empty %}
-    <li>Sin mulas asignadas.</li>
+    <p class="empty-txt">Sin mulas asignadas.</p>
   {% endfor %}
-</ul>
+</div>
+{% if mulas_disponibles %}
+<div class="card" style="margin-top:16px;">
+  <h3 class="card-title" style="margin:0 0 12px;">Agregar mula disponible</h3>
+  {% for mula in mulas_disponibles %}
+    <div class="mula-item">
+      <span class="mono"><strong>{{ mula.placa }}</strong></span>
+      <span class="mula-model">{{ mula.marca }} {{ mula.modelo }}</span>
+      <span class="badge badge-idle">Disponible</span>
+      <form method="post" action="{% url 'operaciones:mula_agregar' operation.pk mula.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary" style="padding:6px 12px; font-size:.8125rem;">+ Agregar</button>
+      </form>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
 <h2>Turnos</h2>
 <a class="btn btn-primary" href="{% url 'operaciones:turno_nuevo' operation.pk %}">Registrar turno</a>
 <table class="table">
@@ -24,7 +53,7 @@
       <td>{{ shift.driver }}</td>
       <td>{{ shift.fecha_inicio|date:"d/m/Y H:i" }}</td>
       <td>{{ shift.fecha_fin|date:"d/m/Y H:i" }}</td>
-      <td>{{ shift.horas_trabajadas }}</td>
+      <td>{{ shift.horas_trabajadas|floatformat:1 }}</td>
       <td>{{ shift.cumplimiento_pct }}%</td>
       <td>{{ shift.get_estado_display }}</td>
     </tr>

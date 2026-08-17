@@ -13,4 +13,6 @@ urlpatterns = [
     path("historial/", views.dashboard_historial, name="historial"),
     path("gantt/<int:pk>/", views.dashboard_gantt, name="gantt"),
     path("gantt/<int:pk>/datos/", views.gantt_datos, name="gantt_datos"),
+    path("linea-tiempo/", views.dashboard_gantt_semana, name="gantt_semana"),
+    path("linea-tiempo/datos/", views.gantt_datos_semana, name="gantt_semana_datos"),
 ]

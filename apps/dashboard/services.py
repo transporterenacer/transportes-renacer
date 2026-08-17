@@ -3,9 +3,13 @@ from decimal import Decimal
 from django.db.models import Avg, Count, Max, Sum
 
 from apps.conductores.models import Driver
-from apps.facturacion.models import BillingRecord, ClientPayment
+from apps.facturacion.services import (
+    info_facturacion_operacion,
+    resumen_global,
+)
 from apps.flota.models import Vehicle
-from apps.nomina.models import DriverAdvance, Payroll
+from apps.nomina.models import DriverAdvance
+from apps.nomina.services import nomina_pendiente_actual
 from apps.operaciones.models import Incident, Operation, Shift
 from apps.operaciones.services import detectar_dobles_turnos
 
@@ -21,36 +25,20 @@ def ultima_actualizacion(*modelos):
 
 def kpis_inicio():
     activas = Operation.objects.filter(estado=Operation.ACTIVA)
-    horas_trabajadas = (
-        Shift.objects.filter(estado=Shift.REALIZADO)
-        .aggregate(total=Sum("horas_trabajadas"))["total"]
-        or Decimal(0)
-    )
-    horas_facturables = (
-        BillingRecord.objects.aggregate(total=Sum("horas"))["total"] or Decimal(0)
-    )
-    valor_generado = (
-        BillingRecord.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-    )
-    abonos = (
-        ClientPayment.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-    )
-    nomina_pendiente = (
-        Payroll.objects.exclude(estado=Payroll.PAGADO)
-        .aggregate(total=Sum("total"))["total"]
-        or Decimal(0)
-    )
+    globales = resumen_global()
+    nomina_pendiente = nomina_pendiente_actual()
     return {
         "operaciones_activas": activas.count(),
         "mulas_en_operacion": Vehicle.objects.filter(estado=Vehicle.EN_OPERACION).count(),
         "mulas_disponibles": Vehicle.objects.filter(estado=Vehicle.DISPONIBLE).count(),
         "mulas_en_taller": Vehicle.objects.filter(estado=Vehicle.EN_TALLER).count(),
-        "horas_trabajadas": horas_trabajadas,
-        "horas_facturables": horas_facturables,
-        "valor_generado": valor_generado,
-        "abonos": abonos,
-        "saldo_pendiente": valor_generado - abonos,
-        "nomina_semanal_pendiente": nomina_pendiente,
+        "horas_trabajadas": globales["horas_trabajadas"],
+        "horas_relacionadas": globales["horas_relacionadas"],
+        "horas_pendientes": globales["horas_pendientes"],
+        "valor_generado": globales["valor_generado"],
+        "abonos": globales["abonos"],
+        "saldo_pendiente": globales["saldo"],
+        "nomina_pendiente": nomina_pendiente,
     }
 
 
@@ -98,45 +86,49 @@ def kpis_nomina(desde, hasta):
 
 
 def kpis_financiero():
-    valor_generado = (
-        BillingRecord.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-    )
-    abonos = (
-        ClientPayment.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-    )
+    globales = resumen_global()
 
     por_operacion = []
-    for op in Operation.objects.filter(
-        billing_records__isnull=False
-    ).distinct().prefetch_related("billing_records", "client_payments"):
-        facturado = (
-            op.billing_records.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-        )
-        abonado = (
-            op.client_payments.aggregate(total=Sum("valor"))["total"] or Decimal(0)
-        )
+    for op in Operation.objects.select_related("generador_de_carga").exclude(
+        estado=Operation.CANCELADA
+    ):
+        info = info_facturacion_operacion(op)
+        if (
+            info["horas_trabajadas"] <= 0
+            and info["saldo"] <= 0
+            and not op.client_payments.exists()
+        ):
+            continue
         por_operacion.append(
             {
                 "codigo": op.codigo,
                 "pk": op.pk,
-                "facturado": facturado,
-                "abonado": abonado,
-                "saldo": facturado - abonado,
+                "buque": op.buque,
+                "valor_generado": info["valor_generado"],
+                "horas_pendientes": info["horas_pendientes"],
+                "abonado": info["abonado"],
+                "saldo": info["saldo"],
             }
         )
     por_operacion.sort(key=lambda x: x["saldo"], reverse=True)
     mayor_saldo = por_operacion[:5]
 
-    evolucion = list(
-        BillingRecord.objects.values("fecha")
-        .annotate(total=Sum("valor"))
-        .order_by("fecha")
-    )
+    tarifas = dict(Operation.objects.values_list("id", "tarifa_hora"))
+    por_fecha = {}
+    for fecha, op_id, horas in (
+        Shift.objects.filter(estado=Shift.REALIZADO)
+        .values_list("fecha_inicio__date", "operation", "horas_trabajadas")
+    ):
+        por_fecha[fecha] = por_fecha.get(fecha, Decimal(0)) + Decimal(
+            horas
+        ) * tarifas.get(op_id, Decimal(0))
+    evolucion = [{"fecha": f, "total": t} for f, t in sorted(por_fecha.items())]
 
     return {
-        "valor_generado": valor_generado,
-        "abonos": abonos,
-        "saldo": valor_generado - abonos,
+        "valor_generado": globales["valor_generado"],
+        "abonos": globales["abonos"],
+        "saldo": globales["saldo"],
+        "horas_pendientes": globales["horas_pendientes"],
         "por_operacion": por_operacion,
         "mayor_saldo": mayor_saldo,
         "evolucion": evolucion,
@@ -208,6 +200,43 @@ def bloques_gantt(operation):
                 "estado": shift.estado,
                 "novedad": novedad,
                 "mula": shift.vehicle.placa,
+            }
+        )
+    return [
+        {"placa": placa, "bloques": sorted(f["bloques"], key=lambda b: b["inicio"])}
+        for placa, f in sorted(filas.items())
+    ]
+
+
+def bloques_gantt_rango(desde=None, hasta=None, solo_activas=False):
+    shifts = Shift.objects.select_related(
+        "vehicle", "operation", "incidente__categoria"
+    ).order_by("fecha_inicio")
+    if desde is not None:
+        shifts = shifts.filter(fecha_inicio__date__gte=desde)
+    if hasta is not None:
+        shifts = shifts.filter(fecha_inicio__date__lte=hasta)
+    if solo_activas:
+        shifts = shifts.filter(operation__estado=Operation.ACTIVA)
+
+    filas = {}
+    for shift in shifts:
+        filas.setdefault(shift.vehicle.placa, {"placa": shift.vehicle.placa, "bloques": []})
+        novedad = ""
+        if hasattr(shift, "incidente"):
+            novedad = shift.incidente.categoria.nombre
+        filas[shift.vehicle.placa]["bloques"].append(
+            {
+                "id": shift.pk,
+                "inicio": shift.fecha_inicio.isoformat(),
+                "fin": shift.fecha_fin.isoformat(),
+                "horas": float(shift.horas_trabajadas),
+                "cumplimiento": float(shift.cumplimiento_pct),
+                "tipo": shift.get_tipo_display(),
+                "estado": shift.estado,
+                "novedad": novedad,
+                "mula": shift.vehicle.placa,
+                "operacion": shift.operation.codigo,
             }
         )
     return [

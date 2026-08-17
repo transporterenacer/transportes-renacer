@@ -10,6 +10,7 @@ from apps.documentos.models import Document, DocumentAudit, DocumentType
 from apps.documentos.services import (
     cargar_documento,
     desactivar_conductor,
+    desactivar_vehiculo,
     documentos_faltantes,
     documentos_vigentes_entidad,
     estado_documento,
@@ -189,6 +190,32 @@ class DesactivarConductorTests(TestCase):
         self.assertEqual(self.driver.estado, Driver.INACTIVO)
         self.assertEqual(borrados, 1)
         self.assertEqual(self.driver.documentos_doc.count(), 0)
+        self.assertTrue(
+            DocumentAudit.objects.filter(accion=DocumentAudit.BORRADO).exists()
+        )
+
+
+class DesactivarVehiculoTests(TestCase):
+    def setUp(self):
+        C().handle()
+        self.usuario = User.objects.create_user(username="maria", password="x")
+        self.vehicle = Vehicle.objects.create(placa="ABC123")
+        self.soat = DocumentType.objects.get(codigo="soat")
+
+    @override_settings(DOCUMENT_STORAGE_BACKEND="local")
+    def test_desactivar_marca_fuera_de_servicio_y_borra_documentos(self):
+        cargar_documento(
+            tipo=self.soat, entidad=self.vehicle, archivo=b"%PDF-1.4",
+            content_type="application/pdf", extension="pdf", tamano=10,
+            fecha_expedicion=date(2026, 1, 1), fecha_vencimiento=date(2027, 1, 1),
+            usuario=self.usuario,
+        )
+        self.assertEqual(self.vehicle.documentos_doc.count(), 1)
+        borrados = desactivar_vehiculo(self.vehicle, usuario=self.usuario)
+        self.vehicle.refresh_from_db()
+        self.assertEqual(self.vehicle.estado, Vehicle.FUERA_DE_SERVICIO)
+        self.assertEqual(borrados, 1)
+        self.assertEqual(self.vehicle.documentos_doc.count(), 0)
         self.assertTrue(
             DocumentAudit.objects.filter(accion=DocumentAudit.BORRADO).exists()
         )

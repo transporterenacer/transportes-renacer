@@ -13,5 +13,6 @@ urlpatterns = [
     path("<int:pk>/descargar/", views.descargar, name="descargar"),
     path("<int:pk>/reemplazar/", views.reemplazar, name="reemplazar"),
     path("driver/<int:pk>/desactivar/", views.desactivar_conductor, name="desactivar_conductor"),
+    path("vehicle/<int:pk>/desactivar/", views.desactivar_vehiculo, name="desactivar_vehiculo"),
     path("media/<path:storage_path>", views.media, name="media"),
 ]

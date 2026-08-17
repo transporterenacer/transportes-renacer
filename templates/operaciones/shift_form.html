@@ -1,11 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Registrar turno{% endblock %}
+{% block page_title %}Registrar turno{% endblock %}
 {% block content %}
-<p class="eyebrow">Registrar turno</p>
+<p class="eyebrow">Operación</p>
 <h1>{{ operation.buque }}</h1>
-<form method="post">
+<p class="meta-update">{{ operation.codigo }} · {{ operation.generador_de_carga }} · {{ operation.puerto }}</p>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="form-grid">
+    <div class="form-field">
+      <span class="kpi-label">Meta horas</span>
+      <span class="kpi-value" style="font-size:1.4rem;">{{ operation.meta_horas|floatformat:1 }} h</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Turno día</span>
+      <span class="kpi-value" style="font-size:1.4rem;">${{ operation.valor_turno_dia|floatformat:0 }}</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Turno noche</span>
+      <span class="kpi-value" style="font-size:1.4rem;">${{ operation.valor_turno_noche|floatformat:0 }}</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Tarifa cliente</span>
+      <span class="kpi-value" style="font-size:1.4rem;">${{ operation.tarifa_hora|floatformat:0 }}/h</span>
+    </div>
+  </div>
+</div>
+
+<form method="post" class="card">
   {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit" class="btn btn-primary">Guardar turno</button>
+  {% if form.non_field_errors %}
+    <div class="alerta"><p>{{ form.non_field_errors }}</p></div>
+  {% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      {{ form.vehicle.label_tag }}{{ form.vehicle }}{{ form.vehicle.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.driver.label_tag }}{{ form.driver }}{{ form.driver.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.tipo.label_tag }}{{ form.tipo }}{{ form.tipo.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.novedad_categoria.label_tag }}{{ form.novedad_categoria }}{{ form.novedad_categoria.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_inicio.label_tag }}{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_fin.label_tag }}{{ form.fecha_fin }}{{ form.fecha_fin.errors }}
+    </div>
+  </div>
+  <div class="form-field">
+    {{ form.novedad_descripcion.label_tag }}{{ form.novedad_descripcion }}{{ form.novedad_descripcion.errors }}
+  </div>
+  <div class="form-field checkbox-field">
+    <label class="checkbox-label">
+      {{ form.liberar_mula }} {{ form.liberar_mula.label }}
+    </label>
+    {% if form.liberar_mula.help_text %}<span class="helptext">{{ form.liberar_mula.help_text }}</span>{% endif %}
+  </div>
+  <button type="submit" class="btn-primary">Guardar turno</button>
 </form>
 {% endblock %}

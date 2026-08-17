@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
 from apps.conductores.models import Driver
-from apps.facturacion.services import generar_billing_operacion, generar_csv_facturacion
+from apps.facturacion.services import crear_relacion, generar_csv_facturacion
 from apps.flota.models import Vehicle
 from apps.operaciones.models import Operation, Shift
 
@@ -44,30 +44,33 @@ class CsvFacturacionTests(TestCase):
             estado=Shift.REALIZADO,
         )
 
-    def test_csv_contiene_filas_y_no_chofer(self):
-        self._shift(self.v1, 10)
-        self._shift(self.v2, 11)
-        generar_billing_operacion(self.op)
+    def test_csv_contiene_relacion_y_no_chofer(self):
+        s1 = self._shift(self.v1, 10)
+        s2 = self._shift(self.v2, 11)
+        crear_relacion(self.op, [s1.pk, s2.pk])
         csv_texto = generar_csv_facturacion(self.op)
         self.assertNotIn("Juan", csv_texto)
         self.assertIn("ABC123", csv_texto)
         self.assertIn("DEF456", csv_texto)
+        self.assertIn("REL-OP-001-001", csv_texto)
         self.assertIn("11.00", csv_texto)
         self.assertIn("11/08/2026", csv_texto)
 
     def test_csv_incluye_resumen_por_mula(self):
-        self._shift(self.v1, 10)
-        self._shift(self.v1, 11)
-        generar_billing_operacion(self.op)
+        s1 = self._shift(self.v1, 10)
+        s2 = self._shift(self.v1, 11)
+        self._shift(self.v1, 12)
+        crear_relacion(self.op, [s1.pk, s2.pk])
         csv_texto = generar_csv_facturacion(self.op)
-        self.assertIn("Mula;Horas totales", csv_texto)
-        self.assertIn("ABC123;22.00", csv_texto)
+        self.assertIn("Mula;Horas relacionadas;Horas pendientes", csv_texto)
+        self.assertIn("ABC123;22.00;11.00", csv_texto)
 
-    def test_csv_separador_punto_y_coma(self):
-        self._shift(self.v1, 10)
-        generar_billing_operacion(self.op)
+    def test_csv_separador_punto_y_coma_y_columnas(self):
+        s1 = self._shift(self.v1, 10)
+        crear_relacion(self.op, [s1.pk])
         csv_texto = generar_csv_facturacion(self.op)
         self.assertTrue(csv_texto.startswith("\ufeff"))
         reader = list(csv.reader(io.StringIO(csv_texto.lstrip("\ufeff")), delimiter=";"))
         self.assertEqual(reader[0][0], "Fecha")
-        self.assertEqual(len(reader[0]), 7)
+        self.assertEqual(len(reader[0]), 10)
+        self.assertIn("Valor hora", reader[0])

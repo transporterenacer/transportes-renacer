@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ driver.nombre }} · Saldo de nómina{% endblock %}
+{% block content %}
+<p class="eyebrow">Nómina · Saldo del conductor</p>
+<h1>{{ driver.nombre }}</h1>
+<p class="meta-update">{{ driver.documento }} · Saldo acumulado en todas las semanas</p>
+
+{% if mensaje %}<div class="alerta"><p>{{ mensaje }}</p></div>{% endif %}
+
+<div class="card" style="margin-bottom:20px; {% if saldo.estado == 'pagado' and saldo.total_turnos %}border-left:4px solid var(--ok);{% endif %}">
+  <div class="kpi-content">
+    <div class="kpi-label">Saldo pendiente</div>
+    <div class="kpi-value" style="{% if saldo.saldo_pendiente %}color:var(--warn);{% else %}color:var(--ok);{% endif %}">
+      ${{ saldo.saldo_pendiente|floatformat:0 }}
+    </div>
+    <div class="kpi-foot">
+      {% if saldo.total_turnos == 0 %}
+        Sin turnos liquidados
+      {% elif saldo.saldo_pendiente == 0 %}
+        Sin saldo pendiente
+      {% else %}
+        Falta por pagar a {{ driver.nombre }}
+      {% endif %}
+    </div>
+    {% if ultimo_movimiento %}
+    <div class="kpi-foot" style="margin-top:6px;">
+      Último movimiento: {{ ultimo_movimiento.get_tipo_display }} ${{ ultimo_movimiento.valor|floatformat:0 }} · {{ ultimo_movimiento.fecha|date:"d/m/Y" }} · {{ ultimo_movimiento.get_metodo_display }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if saldo.saldo_a_favor %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="kpi-content">
+    <div class="kpi-label">Saldo a favor (adelantos recibidos por encima de lo devengado)</div>
+    <div class="kpi-value" style="color:var(--nav-bg);">${{ saldo.saldo_a_favor|floatformat:0 }}</div>
+    <div class="kpi-foot">se descontará automáticamente de los turnos futuros</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="kpi-grid" style="margin-bottom:20px;">
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Turnos cubiertos</div>
+      <div class="kpi-value">{{ saldo.turnos_cubiertos }}</div>
+      <div class="kpi-foot">de {{ saldo.total_turnos }} liquidados</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">check_circle</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Turnos pendientes</div>
+      <div class="kpi-value">{{ saldo.turnos_pendientes }}</div>
+      <div class="kpi-foot">con saldo por pagar</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">pending</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Abonos</div>
+      <div class="kpi-value">${{ saldo.abonos|floatformat:0 }}</div>
+      <div class="kpi-foot">entregados al conductor</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">payments</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Pendiente</div>
+      <div class="kpi-value" style="color:var(--warn);">${{ saldo.saldo_pendiente|floatformat:0 }}</div>
+      <div class="kpi-foot">que debemos pagar</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">hourglass_empty</span></span>
+  </div>
+</div>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+  <button type="button" class="btn-primary" onclick="document.getElementById('form-pago').hidden = !document.getElementById('form-pago').hidden">Registrar pago</button>
+  <button type="button" class="btn" onclick="document.getElementById('form-abono').hidden = !document.getElementById('form-abono').hidden">Registrar abono</button>
+  <a class="btn" href="{% url 'nomina:lista' %}">Volver a nómina</a>
+</div>
+
+<div id="form-pago" {% if not pago_form.errors %}hidden{% endif %} class="card inline-form" style="margin-bottom:20px; background:var(--surface);">
+  <h3 class="card-title" style="margin:0 0 12px;">Registrar pago</h3>
+  {% if saldo.saldo_pendiente == 0 and saldo.total_turnos %}
+    <p class="meta-update">El conductor no tiene saldo pendiente. Usa “Registrar abono” para adelantos.</p>
+  {% else %}
+  <form method="post" action="{% url 'nomina:pago_nuevo' driver.pk %}">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ pago_form.valor.label_tag }}{{ pago_form.valor }}</div>
+      <div class="form-field">{{ pago_form.metodo.label_tag }}{{ pago_form.metodo }}</div>
+    </div>
+    {% if pago_form.errors %}<div class="alerta"><p>{{ pago_form.errors }}</p></div>{% endif %}
+    <button type="submit" class="btn-primary">Pagar</button>
+  </form>
+  {% endif %}
+</div>
+
+<div id="form-abono" {% if not abono_form.errors %}hidden{% endif %} class="card inline-form" style="margin-bottom:20px; background:var(--surface);">
+  <h3 class="card-title" style="margin:0 0 12px;">Nuevo abono</h3>
+  <form method="post" action="{% url 'nomina:abono_conductor_nuevo' driver.pk %}">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ abono_form.fecha.label_tag }}{{ abono_form.fecha }}</div>
+      <div class="form-field">{{ abono_form.valor.label_tag }}{{ abono_form.valor }}</div>
+      <div class="form-field">{{ abono_form.metodo.label_tag }}{{ abono_form.metodo }}</div>
+    </div>
+    <div class="form-field">{{ abono_form.descripcion.label_tag }}{{ abono_form.descripcion }}</div>
+    {% if abono_form.errors %}<div class="alerta"><p>{{ abono_form.errors }}</p></div>{% endif %}
+    <button type="submit" class="btn-primary">Registrar abono</button>
+  </form>
+</div>
+
+<h2>Historial de turnos</h2>
+<div style="display:flex; gap:8px; margin-bottom:12px;">
+  <a class="btn {% if filtro == 'todos' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}">Todos</a>
+  <a class="btn {% if filtro == 'pendientes' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}?filtro=pendientes">Pendientes</a>
+  <a class="btn {% if filtro == 'cubiertos' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}?filtro=cubiertos">Cubiertos</a>
+</div>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Operación</th><th>Mula</th><th>Turno</th><th>Horas</th><th>Valor</th><th>Período</th><th>Cubierto</th><th>Pendiente</th></tr></thead>
+  <tbody>
+  {% for item in saldo.items %}
+    <tr>
+      <td>{{ item.shift.fecha_inicio|date:"d/m/Y" }}</td>
+      <td>{{ item.shift.operation.codigo }}</td>
+      <td class="mono">{{ item.shift.vehicle.placa }}</td>
+      <td>{{ item.shift.get_tipo_display }}</td>
+      <td class="mono">{{ item.shift.horas_trabajadas|floatformat:1 }}</td>
+      <td class="mono">${{ item.valor|floatformat:0 }}</td>
+      <td class="mono">{{ item.periodo.periodo_inicio|date:"d/m" }} – {{ item.periodo.periodo_fin|date:"d/m" }} <span class="mono" style="color:var(--text-muted);">({{ item.periodo.numero }})</span></td>
+      <td class="mono">${{ item.pagado|floatformat:0 }}</td>
+      <td class="mono"><strong>${{ item.pendiente|floatformat:0 }}</strong>
+        {% if item.estado == "cubierto" %}<span class="badge badge-ok">Cubierto</span>{% else %}<span class="badge badge-idle">Pendiente</span>{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9">Sin turnos liquidados para este conductor.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Abonos y pagos</h2>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Tipo</th><th>Método</th><th>Valor</th><th>Observación</th></tr></thead>
+  <tbody>
+  {% for m in movimientos %}
+    <tr>
+      <td>{{ m.fecha|date:"d/m/Y" }}</td>
+      <td>{% if m.tipo == "pago" %}<span class="badge badge-ok">Pago</span>{% else %}<span class="badge badge-idle">Abono</span>{% endif %}</td>
+      <td>{{ m.get_metodo_display }}</td>
+      <td class="mono">${{ m.valor|floatformat:0 }}</td>
+      <td>{{ m.descripcion|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Sin abonos ni pagos registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="meta-update">Saldo restante por pagar: <strong>${{ saldo.saldo_pendiente|floatformat:0 }}</strong></p>
+{% endblock %}

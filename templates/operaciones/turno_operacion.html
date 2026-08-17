@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Registrar turno{% endblock %}
+{% block page_title %}Registrar turno{% endblock %}
+{% block content %}
+<p class="eyebrow">Registrar turno</p>
+<h1>Selecciona la operación</h1>
+<p class="empty-txt" style="margin-top:0;">Elige la operación donde vas a registrar el turno.</p>
+
+<div class="card">
+  <div class="mulas-list">
+    {% for op in operaciones %}
+      <div class="mula-item">
+        <div>
+          <span class="mono"><strong>{{ op.codigo }}</strong></span>
+          <span class="mula-model">{{ op.buque }}</span>
+        </div>
+        <span class="mula-model">{{ op.generador_de_carga }} · {{ op.puerto }}</span>
+        <span class="badge badge-ok">{{ op.get_estado_display }}</span>
+        <a class="btn-primary" href="{% url 'operaciones:turno_nuevo' op.pk %}" style="margin-left:auto;">Registrar turno</a>
+      </div>
+    {% empty %}
+      <p class="empty-txt">No hay operaciones activas o programadas.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

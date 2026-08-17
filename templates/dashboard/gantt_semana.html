@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Línea de tiempo{% endblock %}
+{% block page_title %}Línea de tiempo{% endblock %}
+{% block content %}
+<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+
+<div class="semana-nav">
+  <a class="btn" href="{% url 'dashboard:gantt_semana' %}?desde={{ desde_prev|date:'Y-m-d' }}{% if solo_activas %}&solo_activas=1{% endif %}">‹ Anterior</a>
+  <a class="btn" href="{% url 'dashboard:gantt_semana' %}{% if solo_activas %}?solo_activas=1{% endif %}">Hoy</a>
+  <a class="btn" href="{% url 'dashboard:gantt_semana' %}?desde={{ desde_next|date:'Y-m-d' }}{% if solo_activas %}&solo_activas=1{% endif %}">Siguiente ›</a>
+  <span class="semana-rango"><strong>{{ desde|date:"d/m/Y" }}</strong> – <strong>{{ hasta|date:"d/m/Y" }}</strong></span>
+  <label class="switch">
+    <input type="checkbox" id="solo-activas" {% if solo_activas %}checked{% endif %}>
+    <span class="switch-slider"></span>
+    <span class="switch-label">Solo operaciones activas</span>
+  </label>
+</div>
+
+<p class="gantt-filters">
+  <label>Desde <input type="date" id="g-desde" value="{{ desde|date:'Y-m-d' }}"></label>
+  <label>Hasta <input type="date" id="g-hasta" value="{{ hasta|date:'Y-m-d' }}"></label>
+  <label>Mula <select id="g-mula"><option value="">Todas</option></select></label>
+</p>
+<div class="gantt" id="gantt"
+     data-url="{% url 'dashboard:gantt_semana_datos' %}?desde={{ desde|date:'Y-m-d' }}&hasta={{ hasta|date:'Y-m-d' }}{% if solo_activas %}&solo_activas=1{% endif %}"></div>
+<p class="gantt-legend">
+  <span class="legend-item"><span class="sw sw-ok"></span>Cumplimiento ≥ 90%</span>
+  <span class="legend-item"><span class="sw sw-warn"></span>70–89%</span>
+  <span class="legend-item"><span class="sw sw-bad"></span>&lt; 70% / anulado</span>
+</p>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/gantt.js' %}"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('solo-activas');
+    if (!toggle) return;
+    toggle.addEventListener('change', function () {
+      var url = new URL(window.location.href);
+      if (toggle.checked) url.searchParams.set('solo_activas', '1');
+      else url.searchParams.delete('solo_activas');
+      window.location.href = url.toString();
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Relación {{ numero }} · {{ operation.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Facturación</p>
+<h1>Relación {{ numero }}
+{% if paquete.estado == "pagada" %}<span class="badge badge-ok">Pagada</span>
+{% elif paquete.estado == "parcial" %}<span class="badge badge-idle">Parcial</span>
+{% else %}<span class="badge badge-warn">Pendiente</span>{% endif %}
+</h1>
+<p class="meta-update"><strong>{{ records|length }} turnos · {{ horas|floatformat:1 }} h · ${{ valor|floatformat:0 }}</strong></p>
+<p class="meta-update">Operación <strong>{{ operation.codigo }}</strong> · {{ operation.buque }} · Tarifa: ${{ operation.tarifa_hora|floatformat:0 }}/h</p>
+<p><a href="{% url 'facturacion:detalle' operation.pk %}">Volver a {{ operation.codigo }}</a></p>
+
+<div class="kpi-grid kpi-grid--factura">
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Total de la relación</div>
+      <div class="kpi-value">${{ valor|floatformat:0 }}</div>
+      <div class="kpi-foot">{{ records|length }} turno(s) · {{ horas|floatformat:1 }} h</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">send</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Cobrado mediante FIFO</div>
+      <div class="kpi-value">${{ paquete.cobrado|default:0|floatformat:0 }}</div>
+      <div class="kpi-foot">abonos aplicados a esta relación</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">savings</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Saldo pendiente</div>
+      <div class="kpi-value {% if paquete.pendiente %}warn{% endif %}">${{ paquete.pendiente|default:0|floatformat:0 }}</div>
+      <div class="kpi-foot">total de la relación − cobrado</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">hourglass_empty</span></span>
+  </div>
+</div>
+
+{% if anticipo %}
+<div class="alerta"><p><strong>Saldo a favor / anticipo: ${{ anticipo|floatformat:0 }}</strong> de esta operación, pendiente de aplicación a futuras relaciones.</p></div>
+{% endif %}
+
+<h2>Turnos incluidos</h2>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Mula</th><th>Turno</th><th>Horas</th><th>Tarifa</th><th>Total</th></tr></thead>
+  <tbody>
+  {% for br in records %}
+    <tr>
+      <td>{{ br.fecha|date:"d/m/Y" }}</td>
+      <td class="mono">{{ br.shift.vehicle.placa|default:"—" }}</td>
+      <td>{{ br.shift.get_tipo_display|default:"—" }}</td>
+      <td class="mono">{{ br.horas|floatformat:1 }}</td>
+      <td class="mono">${{ br.tarifa_hora|floatformat:0 }}/h</td>
+      <td class="mono">${{ br.valor|floatformat:0 }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Abonos que contribuyeron a cubrirla</h2>
+{% if paquete.abonos %}
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Método</th><th>Valor del abono</th><th>Monto aplicado a esta relación</th></tr></thead>
+  <tbody>
+  {% for entrada in paquete.abonos %}
+    <tr>
+      <td>{{ entrada.abono.fecha|date:"d/m/Y" }}</td>
+      <td>{{ entrada.abono.get_metodo_display }}</td>
+      <td class="mono">${{ entrada.abono.valor|floatformat:0 }}</td>
+      <td class="mono">${{ entrada.monto|floatformat:0 }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="alerta"><p>Esta relación aún no ha sido cubierta por ningún abono.</p></div>
+{% endif %}
+
+<h2>Referencia de la operación</h2>
+<p class="meta-update">Valor generado: <strong>${{ info.valor_generado|floatformat:0 }}</strong> · Abonos recibidos: <strong>${{ info.abonado|floatformat:0 }}</strong> · Saldo por recibir: <strong>${{ info.saldo|floatformat:0 }}</strong></p>
+<table class="table">
+  <thead><tr><th>Fecha</th><th>Método</th><th>Valor</th><th>Observaciones</th></tr></thead>
+  <tbody>
+  {% for abono in abonos %}
+    <tr>
+      <td>{{ abono.fecha|date:"d/m/Y" }}</td>
+      <td>{{ abono.get_metodo_display }}</td>
+      <td class="mono">${{ abono.valor|floatformat:0 }}</td>
+      <td>{{ abono.observaciones|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">Sin abonos registrados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

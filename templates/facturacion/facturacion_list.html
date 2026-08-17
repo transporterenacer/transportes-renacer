@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Facturación{% endblock %}
+{% block content %}
+<p class="eyebrow">Facturación</p>
+<h1>Facturación al generador de carga</h1>
+<p class="meta-update">Información registrada hasta: {{ ultima_actualizacion|date:"d/m/Y H:i"|default:"—" }}</p>
+
+<div class="kpi-grid kpi-grid--factura">
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Valor generado</div>
+      <div class="kpi-value">${{ kpis.valor_generado|intcomma }}</div>
+      <div class="kpi-foot">turnos realizados × tarifa</div>
+    </div>
+    <span class="kpi-icon" data-tone="navy"><span class="material-symbols-outlined">payments</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Abonos recibidos</div>
+      <div class="kpi-value">${{ kpis.abonos|intcomma }}</div>
+      <div class="kpi-foot">pagados por el generador</div>
+    </div>
+    <span class="kpi-icon" data-tone="ok"><span class="material-symbols-outlined">savings</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Saldo por recibir</div>
+      <div class="kpi-value {% if kpis.saldo %}warn{% endif %}">${{ kpis.saldo|intcomma }}</div>
+      <div class="kpi-foot">valor generado − abonos</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">hourglass_empty</span></span>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Horas sin relacionar</div>
+      <div class="kpi-value">{% if kpis.horas_pendientes %}{{ kpis.horas_pendientes|floatformat:1 }}{% else %}0{% endif %}<span class="kpi-unit"> h</span></div>
+      <div class="kpi-foot">de {{ kpis.horas_trabajadas|floatformat:1 }} trabajadas</div>
+    </div>
+    <span class="kpi-icon" data-tone="accent"><span class="material-symbols-outlined">schedule</span></span>
+  </div>
+</div>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+  <a class="btn" href="{% url 'facturacion:csv_resumen' %}">Descargar resumen global (CSV)</a>
+  <a class="btn" href="{% url 'dashboard:financiero' %}">Ir a financiero</a>
+</div>
+
+<h2>Atención</h2>
+<table class="table">
+  <thead><tr><th>Operación</th><th>Buque</th><th>Horas pendientes</th><th>Saldo por recibir</th><th></th></tr></thead>
+  <tbody>
+  {% for a in alertas %}
+    <tr>
+      <td><a href="{% url 'facturacion:detalle' a.pk %}">{{ a.codigo }}</a></td>
+      <td>{{ a.buque }}</td>
+      <td>{{ a.horas_pendientes|floatformat:1 }} h</td>
+      <td class="mono"><strong>{% if a.saldo > 0 %}${% endif %}{{ a.saldo|floatformat:0 }}</strong></td>
+      <td><a class="btn" href="{% url 'facturacion:detalle' a.pk %}">Gestionar</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">Sin operaciones por atender. Todo relacionado y sin saldo pendiente.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Operaciones</h2>
+<div style="display:flex; gap:8px; margin-bottom:12px;">
+  <a class="btn {% if filtro == 'todas' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}">Todas</a>
+  <a class="btn {% if filtro == 'activas' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}?estado=activas">Activas</a>
+  <a class="btn {% if filtro == 'pendientes' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}?estado=pendientes">Por relacionar</a>
+  <a class="btn {% if filtro == 'con_saldo' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}?estado=con_saldo">Con saldo</a>
+</div>
+<table class="table">
+  <thead><tr><th>Código</th><th>Buque</th><th>Generador</th><th>Estado</th><th>Horas trabajadas</th><th>Horas relacionadas</th><th>Horas pendientes</th><th>Valor generado</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead>
+  <tbody>
+  {% for op in operaciones %}
+    <tr>
+      <td><a href="{% url 'facturacion:detalle' op.pk %}">{{ op.codigo }}</a></td>
+      <td>{{ op.buque }}</td>
+      <td>{{ op.generador }}</td>
+      <td><span class="badge badge-idle">{{ op.get_estado_display }}</span></td>
+      <td class="mono">{{ op.horas_trabajadas|floatformat:1 }}</td>
+      <td class="mono">{{ op.horas_relacionadas|floatformat:1 }}</td>
+      <td class="mono">{% if op.horas_pendientes %}<strong class="warn">{{ op.horas_pendientes|floatformat:1 }}</strong>{% else %}0{% endif %}</td>
+      <td class="mono">${{ op.valor_generado|intcomma }}</td>
+      <td class="mono">${{ op.abonado|intcomma }}</td>
+      <td class="mono"><strong>${{ op.saldo|intcomma }}</strong></td>
+      <td><a class="btn" href="{% url 'facturacion:detalle' op.pk %}">Ver</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="11">Sin operaciones para este filtro.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

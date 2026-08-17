@@ -21,6 +21,9 @@ class BillingRecord(AuditMixin):
     operation = models.ForeignKey(
         Operation, on_delete=models.PROTECT, related_name="billing_records"
     )
+    numero_relacion = models.CharField(
+        max_length=40, blank=True, null=True
+    )
     shift = models.ForeignKey(
         Shift,
         on_delete=models.PROTECT,
@@ -47,11 +50,20 @@ class BillingRecord(AuditMixin):
 
 
 class ClientPayment(AuditMixin):
+    EFECTIVO = "efectivo"
+    TRANSFERENCIA = "transferencia"
+
+    METODOS = [
+        (EFECTIVO, "Efectivo"),
+        (TRANSFERENCIA, "Transferencia"),
+    ]
+
     operation = models.ForeignKey(
         Operation, on_delete=models.PROTECT, related_name="client_payments"
     )
     fecha = models.DateField(default=timezone.localdate)
     valor = models.DecimalField(max_digits=14, decimal_places=0)
+    metodo = models.CharField(max_length=20, choices=METODOS, default=EFECTIVO)
     observaciones = models.TextField(blank=True, default="")
 
     class Meta:

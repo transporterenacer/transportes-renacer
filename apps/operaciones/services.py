@@ -22,16 +22,24 @@ def asignar_mulas(operation, vehicles):
         vehicle.save(update_fields=["estado"])
 
 
+def liberar_mula(operation, vehicle):
+    relation = operation.mulas.filter(activa=True, vehicle=vehicle).first()
+    if relation is None:
+        return False
+    relation.activa = False
+    relation.save(update_fields=["activa"])
+    en_otra_activa = OperationVehicle.objects.filter(
+        vehicle=vehicle, activa=True
+    ).exclude(operation=operation).exists()
+    if not en_otra_activa:
+        vehicle.estado = Vehicle.DISPONIBLE
+        vehicle.save(update_fields=["estado"])
+    return True
+
+
 def liberar_mulas(operation):
-    for relation in operation.mulas.filter(activa=True):
-        relation.activa = False
-        relation.save(update_fields=["activa"])
-        en_otra_activa = OperationVehicle.objects.filter(
-            vehicle=relation.vehicle, activa=True
-        ).exclude(operation=operation).exists()
-        if not en_otra_activa:
-            relation.vehicle.estado = Vehicle.DISPONIBLE
-            relation.vehicle.save(update_fields=["estado"])
+    for relation in operation.mulas.filter(activa=True).select_related("vehicle"):
+        liberar_mula(operation, relation.vehicle)
 
 
 def finalizar_operacion(operation, usuario=None):
@@ -68,6 +76,7 @@ def registrar_turno(
     novedad_categoria=None,
     novedad_descripcion="",
     observaciones="",
+    retirar_mula=False,
 ):
     inicio = timezone.make_aware(fecha_inicio)
     fin = timezone.make_aware(fecha_fin)
@@ -110,10 +119,17 @@ def registrar_turno(
                 categoria=novedad_categoria,
                 descripcion=novedad_descripcion,
             )
+        if retirar_mula:
+            liberar_mula(operation, vehicle)
     return shift
 
 
 def cancelar_turno(shift, motivo, usuario=None):
+    if shift.payroll_items.exists():
+        raise ValidationError(
+            "Este turno pertenece a una nómina registrada. "
+            "No puede cancelarse sin un proceso controlado."
+        )
     shift.estado = Shift.CANCELADO
     shift.motivo_cancelacion = motivo
     if usuario is not None:

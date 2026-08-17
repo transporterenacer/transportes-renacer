@@ -53,6 +53,11 @@ class FinancieroDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "OP-001")
 
+    def test_financiero_saldo_desde_turnos_no_desde_relaciones(self):
+        response = self.client.get(reverse("dashboard:financiero"))
+        self.assertContains(response, "OP-001")
+        self.assertContains(response, "185.000")
+
     def test_financiero_carga_chartjs_vendored(self):
         response = self.client.get(reverse("dashboard:financiero"))
         self.assertContains(response, "chart.umd.js")

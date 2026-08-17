@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -7,7 +8,9 @@ from django.utils import timezone
 
 from apps.catalogos.models import CargoGenerator, Port
 from apps.conductores.models import Driver
+from apps.dashboard.services import kpis_inicio
 from apps.flota.models import Vehicle
+from apps.nomina.services import crear_liquidacion, registrar_abono, registrar_pago
 from apps.operaciones.models import Operation, Shift
 
 
@@ -32,7 +35,7 @@ class NominaDashboardTests(TestCase):
         )
         self.client.force_login(self.user)
 
-    def _shift(self, vehicle, dia, estado=Shift.REALIZADO):
+    def _shift(self, vehicle, dia):
         return Shift.objects.create(
             operation=self.op,
             vehicle=vehicle,
@@ -42,22 +45,29 @@ class NominaDashboardTests(TestCase):
             tipo=Shift.DIA,
             meta_horas=self.op.meta_horas,
             valor_estandar=self.op.valor_turno_dia,
-            estado=estado,
+            estado=Shift.REALIZADO,
         )
 
-    def test_nomina_muestra_semana_y_totales(self):
+    def test_kpis_inicio_acumula_pendiente(self):
         self._shift(self.v1, 10)
         self._shift(self.v2, 11)
-        response = self.client.get(
-            reverse("dashboard:nomina"), {"desde": "2026-08-10", "hasta": "2026-08-16"}
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Juan Pérez")
+        crear_liquidacion(date(2026, 8, 10), date(2026, 8, 16))
+        registrar_abono(self.juan, 100000)
+        kpis = kpis_inicio()
+        self.assertEqual(kpis["nomina_pendiente"], Decimal(260000))
 
-    def test_nomina_detecta_doble_turno(self):
+    def test_home_muestra_pendiente_acumulado(self):
         self._shift(self.v1, 10)
-        self._shift(self.v2, 10, estado=Shift.REALIZADO)
-        response = self.client.get(
-            reverse("dashboard:nomina"), {"desde": "2026-08-10", "hasta": "2026-08-16"}
-        )
-        self.assertContains(response, "Posible doble turno")
+        response = self.client.get(reverse("dashboard:inicio"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Nómina pendiente")
+
+    def test_lista_muestra_pendiente_acumulado(self):
+        self._shift(self.v1, 10)
+        self._shift(self.v2, 11)
+        crear_liquidacion(date(2026, 8, 10), date(2026, 8, 16))
+        registrar_pago(self.juan, 100000)
+        response = self.client.get(reverse("nomina:lista"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pendiente acumulado")
+        self.assertContains(response, "260.000")

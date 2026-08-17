@@ -1,6 +1,5 @@
 from datetime import date
 
-from django.db import IntegrityError
 from django.test import TestCase
 
 from apps.catalogos.models import CargoGenerator, Port
@@ -33,6 +32,29 @@ class BillingRecordTests(TestCase):
         )
         self.assertEqual(str(br), "OP-001 - -")
         self.assertEqual(br.estado, BillingRecord.PENDIENTE)
+        self.assertIsNone(br.numero_relacion)
+
+    def test_numero_relacion_nullable_repite_sin_conflicto(self):
+        BillingRecord.objects.create(
+            operation=self.op, fecha=date(2026, 8, 10), horas=11,
+            tarifa_hora=35000, valor=385000,
+        )
+        BillingRecord.objects.create(
+            operation=self.op, fecha=date(2026, 8, 11), horas=8,
+            tarifa_hora=35000, valor=280000,
+        )
+        self.assertEqual(self.op.billing_records.count(), 2)
+
+    def test_numero_relacion_compartido_por_relacion(self):
+        BillingRecord.objects.create(
+            operation=self.op, numero_relacion="REL-OP-001-001",
+            fecha=date(2026, 8, 10), horas=11, tarifa_hora=35000, valor=385000,
+        )
+        BillingRecord.objects.create(
+            operation=self.op, numero_relacion="REL-OP-001-001",
+            fecha=date(2026, 8, 11), horas=8, tarifa_hora=35000, valor=280000,
+        )
+        self.assertEqual(self.op.billing_records.count(), 2)
 
     def test_estados_constants(self):
         self.assertEqual(BillingRecord.PENDIENTE, "pendiente")
@@ -57,4 +79,5 @@ class ClientPaymentTests(TestCase):
     def test_creacion_y_str(self):
         cp = ClientPayment.objects.create(operation=self.op, valor=5000000)
         self.assertEqual(str(cp), "OP-001 $5000000")
+        self.assertEqual(cp.metodo, ClientPayment.EFECTIVO)
         self.assertEqual(self.op.client_payments.count(), 1)
