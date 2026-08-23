@@ -52,6 +52,52 @@
       {{ form.fecha_fin.label_tag }}{{ form.fecha_fin }}{{ form.fecha_fin.errors }}
     </div>
   </div>
+  <div class="form-field" style="grid-column: 1 / -1;">
+    <label class="form-label">Paradas (horas de inactividad)</label>
+    <p class="helptext">Si hubo vacancias/puts durante el turno, registre los horarios aqui.</p>
+    <div id="stops-container">
+      {{ stop_formset.management_form }}
+      {% for stop_form in stop_formset %}
+      <div class="stop-row" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+        {{ stop_form.id }}
+        <div class="form-field" style="margin:0;">
+          {{ stop_form.inicio.label_tag }}{{ stop_form.inicio }}
+        </div>
+        <div class="form-field" style="margin:0;">
+          {{ stop_form.fin.label_tag }}{{ stop_form.fin }}
+        </div>
+        {% if stop_form.can_delete %}
+          <label style="margin:0;">
+            {{ stop_form.DELETE }} <span style="color:var(--red);">Quitar</span>
+          </label>
+        {% endif %}
+        {{ stop_form.non_field_errors }}
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" id="add-stop" class="btn-secondary" style="margin-top:8px;">+ Agregar parada</button>
+  </div>
+
+  <div class="form-field" style="grid-column: 1 / -1;">
+    <div class="card" style="background:var(--bg-subtle); padding:12px;">
+      <span class="kpi-label">Resumen de horas</span>
+      <div style="display:flex; gap:24px; margin-top:8px;">
+        <div>
+          <span class="kpi-label">Brutas</span>
+          <span class="kpi-value" id="horas-brutas">--</span>
+        </div>
+        <div>
+          <span class="kpi-label">Paradas</span>
+          <span class="kpi-value" id="horas-parada">--</span>
+        </div>
+        <div>
+          <span class="kpi-label">Netas</span>
+          <span class="kpi-value" id="horas-netas" style="color:var(--green);">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="form-field">
     {{ form.novedad_descripcion.label_tag }}{{ form.novedad_descripcion }}{{ form.novedad_descripcion.errors }}
   </div>
@@ -63,4 +109,131 @@
   </div>
   <button type="submit" class="btn-primary">Guardar turno</button>
 </form>
+<script>
+(function() {
+  var container = document.getElementById('stops-container');
+  var addBtn = document.getElementById('add-stop');
+  var totalForms = document.querySelector('#id_stops-TOTAL_FORMS');
+  var prefix = 'stops';
+
+  var intervals = [];
+  for (var h = 0; h < 24; h++) {
+    for (var mi = 0; mi < 2; mi++) {
+      var m = mi * 30;
+      intervals.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
+    }
+  }
+
+  function createSelect(name) {
+    var sel = document.createElement('select');
+    sel.name = name;
+    sel.id = 'id_' + name;
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.text = '--:--';
+    sel.appendChild(blank);
+    intervals.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t;
+      opt.text = t;
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
+
+  addBtn.addEventListener('click', function() {
+    var idx = parseInt(totalForms.value);
+    var row = document.createElement('div');
+    row.className = 'stop-row';
+    row.style.cssText = 'display:flex; gap:8px; align-items:center; margin-bottom:8px;';
+
+    var idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = prefix + '-' + idx + '-id';
+    idInput.value = '';
+
+    var iniLabel = document.createElement('span');
+    iniLabel.textContent = 'Inicio:';
+    var iniSelect = createSelect(prefix + '-' + idx + '-inicio');
+
+    var finLabel = document.createElement('span');
+    finLabel.textContent = 'Fin:';
+    var finSelect = createSelect(prefix + '-' + idx + '-fin');
+
+    var delLabel = document.createElement('label');
+    delLabel.style.cssText = 'margin:0; cursor:pointer; white-space:nowrap;';
+    var delCheck = document.createElement('input');
+    delCheck.type = 'checkbox';
+    delCheck.name = prefix + '-' + idx + '-DELETE';
+    delCheck.value = 'on';
+    delCheck.style.display = 'none';
+    var delText = document.createElement('span');
+    delText.textContent = ' Quitar';
+    delText.style.color = 'var(--red)';
+    delLabel.appendChild(delCheck);
+    delLabel.appendChild(delText);
+
+    delCheck.addEventListener('change', function() {
+      row.style.opacity = this.checked ? '0.3' : '1';
+      updateSummary();
+    });
+
+    row.appendChild(idInput);
+    row.appendChild(iniLabel);
+    row.appendChild(iniSelect);
+    row.appendChild(finLabel);
+    row.appendChild(finSelect);
+    row.appendChild(delLabel);
+    container.appendChild(row);
+    totalForms.value = idx + 1;
+
+    iniSelect.addEventListener('change', updateSummary);
+    finSelect.addEventListener('change', updateSummary);
+  });
+
+  function parseTime(val) {
+    if (!val) return 0;
+    var parts = val.split(':').map(Number);
+    return parts[0] + parts[1] / 60;
+  }
+
+  function updateSummary() {
+    var iniInput = document.querySelector('[name="fecha_inicio"]');
+    var finInput = document.querySelector('[name="fecha_fin"]');
+    if (!iniInput || !finInput) return;
+
+    var parseFull = function(str) {
+      var match = str.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
+      if (!match) return null;
+      return new Date(match[3], match[2]-1, match[1], match[4], match[5]);
+    };
+
+    var start = parseFull(iniInput.value);
+    var end = parseFull(finInput.value);
+    if (!start || !end || end <= start) return;
+
+    var totalBruto = (end - start) / (1000 * 60 * 60);
+    var totalStops = 0;
+
+    container.querySelectorAll('.stop-row').forEach(function(row) {
+      var del = row.querySelector('input[type="checkbox"]');
+      if (del && del.checked) return;
+      var selects = row.querySelectorAll('select');
+      if (selects.length >= 2 && selects[0].value && selects[1].value) {
+        var s = parseTime(selects[0].value);
+        var e = parseTime(selects[1].value);
+        if (e > s) totalStops += (e - s);
+      }
+    });
+
+    var netas = totalBruto - totalStops;
+    document.getElementById('horas-brutas').textContent = totalBruto.toFixed(1) + ' h';
+    document.getElementById('horas-parada').textContent = totalStops.toFixed(1) + ' h';
+    document.getElementById('horas-netas').textContent = netas.toFixed(1) + ' h';
+  }
+
+  document.querySelector('[name="fecha_inicio"]').addEventListener('change', updateSummary);
+  document.querySelector('[name="fecha_fin"]').addEventListener('change', updateSummary);
+})();
+</script>
 {% endblock %}
