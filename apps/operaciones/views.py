@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.flota.models import Vehicle
-from apps.operaciones.forms import OperationForm, ShiftForm
+from apps.operaciones.forms import OperationForm, ShiftForm, ShiftStopFormSet
 from apps.operaciones.models import Operation, Shift
 from apps.operaciones.services import (
     asignar_mulas,
@@ -63,12 +65,25 @@ def turno_operacion(request):
 def turno_nuevo(request, pk):
     operation = get_object_or_404(Operation, pk=pk)
     form = ShiftForm(request.POST or None)
+    has_stops_data = any(k.startswith("stops-") for k in request.POST) if request.method == "POST" else False
+    stop_formset = ShiftStopFormSet(request.POST if has_stops_data else None, prefix="stops")
     mulas = operation.mulas.filter(activa=True)
     form.fields["vehicle"].queryset = Vehicle.objects.filter(
         pk__in=mulas.values("vehicle")
     )
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and (not has_stops_data or stop_formset.is_valid()):
         data = form.cleaned_data
+        stops = []
+        if has_stops_data:
+            for stop_form in stop_formset:
+                if stop_form.cleaned_data and not stop_form.cleaned_data.get("DELETE", False):
+                    ini = stop_form.cleaned_data["inicio"]
+                    fin = stop_form.cleaned_data["fin"]
+                    base_date = data["fecha_inicio"].date()
+                    stops.append({
+                        "inicio": datetime.combine(base_date, datetime.strptime(ini, "%H:%M").time()),
+                        "fin": datetime.combine(base_date, datetime.strptime(fin, "%H:%M").time()),
+                    })
         registrar_turno(
             operation=operation,
             vehicle=data["vehicle"],
@@ -81,9 +96,13 @@ def turno_nuevo(request, pk):
             novedad_categoria=data.get("novedad_categoria"),
             novedad_descripcion=data.get("novedad_descripcion", ""),
             retirar_mula=data.get("liberar_mula", False),
+            stops=stops if stops else None,
         )
         return redirect("operaciones:detalle", pk=operation.pk)
-    return render(request, "operaciones/shift_form.html", {"form": form, "operation": operation})
+    return render(
+        request, "operaciones/shift_form.html",
+        {"form": form, "stop_formset": stop_formset, "operation": operation},
+    )
 
 
 @login_required
