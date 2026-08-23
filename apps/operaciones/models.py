@@ -125,9 +125,16 @@ class Shift(AuditMixin):
     def __str__(self):
         return f"{self.vehicle.placa} {self.fecha_inicio:%d/%m %H:%M}"
 
+    @property
+    def total_paradas_horas(self):
+        if self.pk is None:
+            return 0
+        return sum(s.duracion_horas for s in self.stops.all())
+
     def save(self, *args, **kwargs):
         delta = self.fecha_fin - self.fecha_inicio
-        self.horas_trabajadas = round(delta.total_seconds() / 3600, 2)
+        total_bruto = delta.total_seconds() / 3600
+        self.horas_trabajadas = round(total_bruto - self.total_paradas_horas, 2)
         if self.meta_horas:
             self.cumplimiento_pct = round(
                 float(self.horas_trabajadas) / float(self.meta_horas) * 100, 1
@@ -149,6 +156,26 @@ class Shift(AuditMixin):
     @property
     def valor_es_pagable(self):
         return self.estado == self.REALIZADO
+
+
+class ShiftStop(AuditMixin):
+    shift = models.ForeignKey(
+        Shift, on_delete=models.CASCADE, related_name="stops"
+    )
+    inicio = models.DateTimeField()
+    fin = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "Parada"
+        verbose_name_plural = "Paradas"
+        ordering = ["inicio"]
+
+    def __str__(self):
+        return f"Parada {self.inicio:%H:%M}-{self.fin:%H:%M}"
+
+    @property
+    def duracion_horas(self):
+        return (self.fin - self.inicio).total_seconds() / 3600
 
 
 class Incident(AuditMixin):
