@@ -1,3 +1,5 @@
+from datetime import time
+
 from django import forms
 
 from apps.catalogos.models import IncidentCategory
@@ -46,3 +48,35 @@ class ShiftForm(forms.Form):
         label="Este es el último turno de esta mula",
         help_text="Al guardar, retira la mula de esta operación y la deja disponible.",
     )
+
+
+def _half_hour_choices():
+    choices = [("", "--:--")]
+    for h in range(24):
+        for m in (0, 30):
+            t = time(h, m)
+            label = t.strftime("%H:%M")
+            choices.append((label, label))
+    return choices
+
+
+class ShiftStopForm(forms.Form):
+    inicio = forms.ChoiceField(
+        choices=_half_hour_choices(), label="Inicio parada"
+    )
+    fin = forms.ChoiceField(
+        choices=_half_hour_choices(), label="Fin parada"
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        ini = cleaned.get("inicio")
+        fin = cleaned.get("fin")
+        if ini and fin and ini >= fin:
+            raise forms.ValidationError("La hora de fin debe ser posterior a la de inicio.")
+        return cleaned
+
+
+ShiftStopFormSet = forms.formset_factory(
+    ShiftStopForm, extra=0, can_delete=True
+)
