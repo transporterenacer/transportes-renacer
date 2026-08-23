@@ -45,7 +45,7 @@
 <h2>Turnos</h2>
 <a class="btn btn-primary" href="{% url 'operaciones:turno_nuevo' operation.pk %}">Registrar turno</a>
 <table class="table">
-  <thead><tr><th>Mula</th><th>Conductor</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Cumpl.</th><th>Estado</th></tr></thead>
+  <thead><tr><th>Mula</th><th>Conductor</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Paradas</th><th>Cumpl.</th><th>Estado</th></tr></thead>
   <tbody>
   {% for shift in operation.shifts.all %}
     <tr>
@@ -54,11 +54,12 @@
       <td>{{ shift.fecha_inicio|date:"d/m/Y H:i" }}</td>
       <td>{{ shift.fecha_fin|date:"d/m/Y H:i" }}</td>
       <td>{{ shift.horas_trabajadas|floatformat:1 }}</td>
+      <td>{% if shift.stops.count %}{{ shift.stops.count }} stop{{ shift.stops.count|pluralize }}{% else %}-{% endif %}</td>
       <td>{{ shift.cumplimiento_pct }}%</td>
       <td>{{ shift.get_estado_display }}</td>
     </tr>
   {% empty %}
-    <tr><td colspan="7">Sin turnos registrados.</td></tr>
+    <tr><td colspan="8">Sin turnos registrados.</td></tr>
   {% endfor %}
   </tbody>
 </table>
