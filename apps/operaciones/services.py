@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Incident, Operation, OperationVehicle, Shift
+from apps.operaciones.models import Incident, Operation, OperationVehicle, Shift, ShiftStop
 
 DESCANSO_MINIMO_HORAS = 8
 
@@ -77,6 +77,7 @@ def registrar_turno(
     novedad_descripcion="",
     observaciones="",
     retirar_mula=False,
+    stops=None,
 ):
     inicio = timezone.make_aware(fecha_inicio)
     fin = timezone.make_aware(fecha_fin)
@@ -119,6 +120,19 @@ def registrar_turno(
                 categoria=novedad_categoria,
                 descripcion=novedad_descripcion,
             )
+        if stops:
+            for stop_data in stops:
+                ShiftStop.objects.create(
+                    shift=shift,
+                    inicio=timezone.make_aware(stop_data["inicio"]),
+                    fin=timezone.make_aware(stop_data["fin"]),
+                )
+            # Recalculate hours after stops are saved
+            shift.refresh_from_db()
+            shift.horas_trabajadas = round(
+                (fin - inicio).total_seconds() / 3600 - shift.total_paradas_horas, 2
+            )
+            shift.save(update_fields=["horas_trabajadas", "cumplimiento_pct"])
         if retirar_mula:
             liberar_mula(operation, vehicle)
     return shift
