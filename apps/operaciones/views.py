@@ -79,17 +79,19 @@ def turno_nuevo(request, pk):
                 if stop_form.cleaned_data and not stop_form.cleaned_data.get("DELETE", False):
                     ini = stop_form.cleaned_data["inicio"]
                     fin = stop_form.cleaned_data["fin"]
-                    base_date = data["fecha_inicio"].date()
+                    base_date = data["fecha_inicio_date"]
                     stops.append({
                         "inicio": datetime.combine(base_date, datetime.strptime(ini, "%H:%M").time()),
                         "fin": datetime.combine(base_date, datetime.strptime(fin, "%H:%M").time()),
                     })
+        inicio = datetime.combine(data["fecha_inicio_date"], datetime.strptime(data["fecha_inicio_time"], "%H:%M").time())
+        fin = datetime.combine(data["fecha_fin_date"], datetime.strptime(data["fecha_fin_time"], "%H:%M").time())
         registrar_turno(
             operation=operation,
             vehicle=data["vehicle"],
             driver=data["driver"],
-            fecha_inicio=data["fecha_inicio"].replace(tzinfo=None),
-            fecha_fin=data["fecha_fin"].replace(tzinfo=None),
+            fecha_inicio=inicio,
+            fecha_fin=fin,
             tipo=data["tipo"],
             valor_estandar=operation.valor_turno_dia if data["tipo"] == "dia" else operation.valor_turno_noche,
             meta_horas=operation.meta_horas,

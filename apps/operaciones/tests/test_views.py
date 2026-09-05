@@ -65,8 +65,10 @@ class OperacionesViewsTests(TestCase):
             {
                 "vehicle": self.vehicle.pk,
                 "driver": self.driver.pk,
-                "fecha_inicio": "2026-08-10 06:00",
-                "fecha_fin": "2026-08-10 17:00",
+                "fecha_inicio_date": "2026-08-10",
+                "fecha_inicio_time": "06:00",
+                "fecha_fin_date": "2026-08-10",
+                "fecha_fin_time": "17:00",
                 "tipo": "dia",
                 "novedad_categoria": self.lluvia.pk,
             },

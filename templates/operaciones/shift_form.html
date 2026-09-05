@@ -46,10 +46,16 @@
       {{ form.novedad_categoria.label_tag }}{{ form.novedad_categoria }}{{ form.novedad_categoria.errors }}
     </div>
     <div class="form-field">
-      {{ form.fecha_inicio.label_tag }}{{ form.fecha_inicio }}{{ form.fecha_inicio.errors }}
+      {{ form.fecha_inicio_date.label_tag }}{{ form.fecha_inicio_date }}{{ form.fecha_inicio_date.errors }}
     </div>
     <div class="form-field">
-      {{ form.fecha_fin.label_tag }}{{ form.fecha_fin }}{{ form.fecha_fin.errors }}
+      {{ form.fecha_inicio_time.label_tag }}{{ form.fecha_inicio_time }}{{ form.fecha_inicio_time.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_fin_date.label_tag }}{{ form.fecha_fin_date }}{{ form.fecha_fin_date.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha_fin_time.label_tag }}{{ form.fecha_fin_time }}{{ form.fecha_fin_time.errors }}
     </div>
   </div>
   <div class="form-field" style="grid-column: 1 / -1;">
@@ -198,18 +204,21 @@
   }
 
   function updateSummary() {
-    var iniInput = document.querySelector('[name="fecha_inicio"]');
-    var finInput = document.querySelector('[name="fecha_fin"]');
-    if (!iniInput || !finInput) return;
+    var iniDate = document.querySelector('[name="fecha_inicio_date"]');
+    var iniTime = document.querySelector('[name="fecha_inicio_time"]');
+    var finDate = document.querySelector('[name="fecha_fin_date"]');
+    var finTime = document.querySelector('[name="fecha_fin_time"]');
+    if (!iniDate || !iniTime || !finDate || !finTime) return;
 
-    var parseFull = function(str) {
-      var match = str.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
-      if (!match) return null;
-      return new Date(match[3], match[2]-1, match[1], match[4], match[5]);
+    var parseFull = function(dateVal, timeVal) {
+      if (!dateVal || !timeVal) return null;
+      var parts = dateVal.split('-').map(Number);
+      var tParts = timeVal.split(':').map(Number);
+      return new Date(parts[0], parts[1]-1, parts[2], tParts[0], tParts[1]);
     };
 
-    var start = parseFull(iniInput.value);
-    var end = parseFull(finInput.value);
+    var start = parseFull(iniDate.value, iniTime.value);
+    var end = parseFull(finDate.value, finTime.value);
     if (!start || !end || end <= start) return;
 
     var totalBruto = (end - start) / (1000 * 60 * 60);
@@ -232,8 +241,10 @@
     document.getElementById('horas-netas').textContent = netas.toFixed(1) + ' h';
   }
 
-  document.querySelector('[name="fecha_inicio"]').addEventListener('change', updateSummary);
-  document.querySelector('[name="fecha_fin"]').addEventListener('change', updateSummary);
+  document.querySelector('[name="fecha_inicio_date"]').addEventListener('change', updateSummary);
+  document.querySelector('[name="fecha_inicio_time"]').addEventListener('change', updateSummary);
+  document.querySelector('[name="fecha_fin_date"]').addEventListener('change', updateSummary);
+  document.querySelector('[name="fecha_fin_time"]').addEventListener('change', updateSummary);
 })();
 </script>
 {% endblock %}
