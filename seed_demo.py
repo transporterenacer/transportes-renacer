@@ -15,7 +15,7 @@ from django.utils import timezone
 from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
 from apps.conductores.models import Driver
 from apps.documentos.management.commands.setup_document_types import Command as DocCmd
-from apps.documentos.models import DocumentType
+from apps.documentos.models import Document, DocumentType
 from apps.documentos.services import cargar_documento
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.facturacion.services import crear_relacion
@@ -164,6 +164,7 @@ op3, _ = Operation.objects.get_or_create(
 # Asignar mulas
 asignar_mulas(op1, [abc, def_, ghi])
 asignar_mulas(op2, [jkl, pqr])
+asignar_mulas(op3, [abc, def_, ghi])
 
 # ─────────────────────────────────────────────────────────────────────
 # PASO 6: Crear turnos con paradas
