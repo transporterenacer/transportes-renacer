@@ -111,8 +111,8 @@ class OperationExpenseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if operation:
             self.fields["vehicle"].queryset = Vehicle.objects.filter(
-                operationvehicle__operation=operation,
-                operationvehicle__activa=True,
+                operaciones__operation=operation,
+                operaciones__activa=True,
             )
         self.fields["proveedor"].queryset = Proveedor.objects.filter(activo=True)
         self.fields["proveedor"].required = False
