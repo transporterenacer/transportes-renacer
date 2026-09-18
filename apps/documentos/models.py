@@ -17,6 +17,11 @@ def content_type_driver():
     return ContentType.objects.get_for_model(Driver)
 
 
+def content_type_expense():
+    from apps.operaciones.models import OperationExpense
+    return ContentType.objects.get_for_model(OperationExpense)
+
+
 class DocumentType(AuditMixin):
     nombre = models.CharField(max_length=100)
     codigo = models.CharField(max_length=50, unique=True)

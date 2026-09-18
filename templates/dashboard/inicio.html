@@ -56,6 +56,14 @@
     </div>
     <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">payments</span></span>
   </div>
+  <div class="card kpi-card">
+    <div class="kpi-content">
+      <div class="kpi-label">Gastos</div>
+      <div class="kpi-value">${{ gastos.total_gastos|intcomma }}</div>
+      <div class="kpi-foot">acumulados</div>
+    </div>
+    <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">receipt_long</span></span>
+  </div>
 </div>
 
 <div class="dash-cols">
@@ -124,6 +132,35 @@
       <div class="fin-sep"></div>
       <div class="fin-row saldo"><span class="fin-label">Saldo</span><span class="fin-val">${{ kpis.saldo_pendiente|intcomma }}</span></div>
     </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="dash-card-head">
+    <h3 class="card-title">Gastos por operación</h3>
+    <a class="dash-link" href="{% url 'operaciones:mechanic_lista' %}">Ver operaciones →</a>
+  </div>
+  <div class="prog-list">
+    {% for op in gastos.ranking_operaciones %}
+    <div class="prog-item">
+      <div class="prog-head">
+        <a class="prog-name" href="{% url 'operaciones:detalle' op.pk %}">{{ op.buque }}</a>
+        <span class="prog-pct mono">${{ op.total|intcomma }}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width: 100%;"></div></div>
+      {% for m in op.mulas %}
+      <div class="prog-item" style="margin-left:16px;">
+        <div class="prog-head">
+          <span class="prog-name" style="font-size:.8125rem;">{{ m.vehicle__placa }}</span>
+          <span class="prog-pct mono" style="font-size:.8125rem;">${{ m.total|intcomma }}</span>
+        </div>
+        <div class="prog-bar" style="height:4px;"><div class="prog-fill" style="width: 100%; opacity:.6;"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% empty %}
+    <p class="empty-txt">Sin gastos registrados.</p>
+    {% endfor %}
   </div>
 </div>
 

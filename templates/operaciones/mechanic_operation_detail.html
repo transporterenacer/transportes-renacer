@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ operation.codigo }} — Mecánico{% endblock %}
+{% block page_title %}{{ operation.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Jefe Mecánico · Operación</p>
+<h1>{{ operation.buque }}</h1>
+<p><strong>{{ operation.codigo }}</strong> · {{ operation.generador_de_carga }} · {{ operation.puerto }}</p>
+<p>Fecha inicio: {{ operation.fecha_inicio|date:"d/m/Y" }}</p>
+
+<h2>Mulas asignadas</h2>
+{% for oma in mulas_asignadas %}
+<div class="card" style="margin-bottom:16px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div>
+      <span class="mono"><strong>{{ oma.vehicle.placa }}</strong></span>
+      <span style="margin-left:8px;">{{ oma.vehicle.marca }} {{ oma.vehicle.modelo }}</span>
+    </div>
+    <a href="{% url 'operaciones:mechanic_gasto_nuevo' operation.pk oma.vehicle.pk %}"
+       class="btn-primary" style="padding:6px 14px; font-size:.8125rem;">
+      + Agregar gasto
+    </a>
+  </div>
+
+  <table class="data-table">
+    <thead><tr><th>Fecha</th><th>Categoría</th><th>Valor</th><th>Proveedor</th><th>Factura</th><th>Acciones</th></tr></thead>
+    <tbody>
+      {% for g in operation.expenses.all %}
+        {% if g.vehicle_id == oma.vehicle_id %}
+        <tr>
+          <td>{{ g.fecha|date:"d/m/Y" }}</td>
+          <td>{{ g.get_categoria_display }}</td>
+          <td class="mono">${{ g.valor|floatformat:0 }}</td>
+          <td>{{ g.proveedor|default:"—" }}</td>
+          <td>{{ g.numero_factura|default:"—" }}</td>
+          <td class="table-actions">
+            <a href="{% url 'operaciones:mechanic_gasto_editar' operation.pk oma.vehicle.pk g.pk %}">Editar</a>
+          </td>
+        </tr>
+        {% endif %}
+      {% empty %}
+        <tr class="empty-row"><td colspan="6">Sin gastos registrados para esta mula.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% empty %}
+<p class="empty-txt">No hay mulas asignadas a esta operación.</p>
+{% endfor %}
+
+<a href="{% url 'operaciones:mechanic_lista' %}" class="btn-secondary" style="margin-top:16px;">← Volver a operaciones</a>
+{% endblock %}

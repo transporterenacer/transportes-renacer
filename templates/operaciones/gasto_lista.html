@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Gastos - {{ operation.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Operación · Gastos</p>
+<h1>{{ operation.buque }}</h1>
+<p class="meta-update">{{ operation.codigo }} · {{ operation.generador_de_carga }}</p>
+<a href="{% url 'operaciones:detalle' operation.pk %}" class="btn-secondary">Volver al detalle</a>
+{% endblock %}

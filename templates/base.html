@@ -32,14 +32,23 @@
         href="{% url 'dashboard:inicio' %}">
         <span class="material-symbols-outlined">dashboard</span> Inicio
       </a>
-      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' %}active{% endif %}"
-        href="{% url 'operaciones:lista' %}">
+
+      {% if 'Admin' in user_groups or 'Secretaria' in user_groups or 'Jefe Mecánico' in user_groups %}
+      <a class="nav-link {% if request.resolver_match.url_name == 'mechanic_lista' %}active{% endif %}"
+        href="{% url 'operaciones:mechanic_lista' %}">
         <span class="material-symbols-outlined">conveyor_belt</span> Operaciones
       </a>
-    <a class="nav-link {% if request.resolver_match.url_name == 'gantt_semana' %}active{% endif %}"
-       href="{% url 'dashboard:gantt_semana' %}">
-      <span class="material-symbols-outlined">timeline</span> Línea de tiempo
-    </a>
+      {% endif %}
+
+      {% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
+      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' and request.resolver_match.url_name != 'mechanic_lista' %}active{% endif %}"
+        href="{% url 'operaciones:lista' %}">
+        <span class="material-symbols-outlined">settings</span> Op. Completa
+      </a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'gantt_semana' %}active{% endif %}"
+         href="{% url 'dashboard:gantt_semana' %}">
+        <span class="material-symbols-outlined">timeline</span> Línea de tiempo
+      </a>
       <a class="nav-link {% if request.resolver_match.app_name == 'flota' %}active{% endif %}"
         href="{% url 'flota:lista' %}">
         <span class="material-symbols-outlined">local_shipping</span> Flota
@@ -57,16 +66,23 @@
         href="{% url 'facturacion:lista' %}">
         <span class="material-symbols-outlined">receipt_long</span> Facturación
       </a>
+      {% endif %}
+
+      {% if 'Admin' in user_groups or 'Secretaria' in user_groups or 'Jefe Mecánico' in user_groups %}
       <div class="sidebar-sep"></div>
       <a class="nav-link {% if request.resolver_match.app_name == 'documentos' %}active{% endif %}"
         href="{% url 'documentos:panel' %}">
         <span class="material-symbols-outlined">folder_shared</span> Documentos
       </a>
+      {% endif %}
+
+      {% if 'Admin' in user_groups %}
       <div class="sidebar-sep"></div>
-    <a class="nav-link {% if request.resolver_match.app_name == 'catalogos' %}active{% endif %}"
-       href="{% url 'catalogos:configuracion' %}">
-      <span class="material-symbols-outlined">settings</span> Configuración
-    </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'catalogos' %}active{% endif %}"
+         href="{% url 'catalogos:configuracion' %}">
+        <span class="material-symbols-outlined">settings</span> Configuración
+      </a>
+      {% endif %}
     </nav>
     <div class="sidebar-footer">
       <div class="user-info"><strong>{{ request.user.get_full_name|default:request.user.username }}</strong></div>

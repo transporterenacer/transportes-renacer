@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port, Proveedor
 
 
 @admin.register(CargoGenerator)
@@ -19,3 +19,10 @@ class PortAdmin(admin.ModelAdmin):
 class IncidentCategoryAdmin(admin.ModelAdmin):
     list_display = ("nombre", "activa")
     list_filter = ("activa",)
+
+
+@admin.register(Proveedor)
+class ProveedorAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "nit", "contacto", "telefono", "activo")
+    list_filter = ("activo",)
+    search_fields = ("nombre", "nit")

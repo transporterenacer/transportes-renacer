@@ -5,6 +5,7 @@
 <h1>{{ operation.buque }}</h1>
 <p><strong>{{ operation.codigo }}</strong> · {{ operation.generador_de_carga }} · {{ operation.puerto }}</p>
 <p>Meta: {{ operation.meta_horas|floatformat:1 }} h · Tarifa: ${{ operation.tarifa_hora|floatformat:0 }}/h · Turno día: ${{ operation.valor_turno_dia|floatformat:0 }}</p>
+
 <h2>Mulas asignadas</h2>
 <div class="mulas-list">
   {% for mula in operation.mulas.all %}
@@ -42,6 +43,7 @@
   {% endfor %}
 </div>
 {% endif %}
+
 <h2>Turnos</h2>
 <a class="btn btn-primary" href="{% url 'operaciones:turno_nuevo' operation.pk %}">Registrar turno</a>
 <table class="table">
@@ -61,6 +63,101 @@
   {% empty %}
     <tr><td colspan="8">Sin turnos registrados.</td></tr>
   {% endfor %}
+  </tbody>
+</table>
+
+<h2>Gastos de operación</h2>
+<a class="btn btn-primary" href="{% url 'operaciones:gasto_nuevo' operation.pk %}">Registrar gasto</a>
+
+<div class="card" style="margin-top:16px; margin-bottom:24px;">
+  <h3 class="card-title">Resumen financiero</h3>
+  <div class="kpi-grid kpi-grid--factura">
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Facturado</span>
+      <span class="kpi-value">${{ total_facturado|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Cobrado</span>
+      <span class="kpi-value">${{ total_cobrado|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card ok"><div class="kpi-content">
+      <span class="kpi-label">Saldo</span>
+      <span class="kpi-value ok">${{ saldo|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Nómina</span>
+      <span class="kpi-value">${{ total_nomina|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Combustible</span>
+      <span class="kpi-value">${{ total_combustible|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Repuestos</span>
+      <span class="kpi-value">${{ total_repuesto|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Llantas</span>
+      <span class="kpi-value">${{ total_llanta|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Mantenimiento</span>
+      <span class="kpi-value">${{ total_mantenimiento|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Mano de obra</span>
+      <span class="kpi-value">${{ total_mano_obra|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Peajes</span>
+      <span class="kpi-value">${{ total_peaje|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Lavado</span>
+      <span class="kpi-value">${{ total_lavado|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Otros</span>
+      <span class="kpi-value">${{ total_otros|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Costo total</span>
+      <span class="kpi-value">${{ total_costos|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card {% if resultado >= 0 %}ok{% else %}warn{% endif %}"><div class="kpi-content">
+      <span class="kpi-label">Resultado</span>
+      <span class="kpi-value {% if resultado >= 0 %}ok{% else %}warn{% endif %}">${{ resultado|floatformat:0 }}</span>
+    </div></div>
+    <div class="kpi-card"><div class="kpi-content">
+      <span class="kpi-label">Margen</span>
+      <span class="kpi-value">{{ margen|floatformat:1 }}%</span>
+    </div></div>
+  </div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Fecha</th><th>Mula</th><th>Categoría</th><th>Proveedor</th><th>Valor</th><th>Galones</th><th>Factura</th><th>Acciones</th></tr></thead>
+  <tbody>
+    {% for g in operation.expenses.all %}
+    <tr>
+      <td>{{ g.fecha|date:"d/m/Y" }}</td>
+      <td>{{ g.vehicle.placa }}</td>
+      <td>{{ g.get_categoria_display }}</td>
+      <td>{{ g.proveedor|default:"—" }}</td>
+      <td class="mono">${{ g.valor|floatformat:0 }}</td>
+      <td>{% if g.galones %}{{ g.galones }} gal{% else %}—{% endif %}</td>
+      <td>{{ g.numero_factura|default:"—" }}</td>
+      <td class="table-actions">
+        <a href="{% url 'operaciones:gasto_editar' operation.pk g.pk %}">Editar</a>
+        <form method="post" action="{% url 'operaciones:gasto_eliminar' operation.pk g.pk %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este gasto?');">
+          {% csrf_token %}
+          <button type="submit" class="btn-link" style="color:var(--danger);">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr class="empty-row"><td colspan="8">Sin gastos registrados.</td></tr>
+    {% endfor %}
   </tbody>
 </table>
 {% endblock %}

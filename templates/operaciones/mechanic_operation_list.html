@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Operaciones — Mecánico{% endblock %}
+{% block page_title %}Operaciones{% endblock %}
+{% block content %}
+<p class="eyebrow">Jefe Mecánico</p>
+<h1>Operaciones activas</h1>
+<table class="table">
+  <thead><tr><th>Código</th><th>Buque</th><th>Puerto</th><th>Estado</th><th>Acción</th></tr></thead>
+  <tbody>
+  {% for op in operaciones %}
+    <tr>
+      <td>{{ op.codigo }}</td>
+      <td>{{ op.buque }}</td>
+      <td>{{ op.puerto }}</td>
+      <td>{{ op.get_estado_display }}</td>
+      <td><a href="{% url 'operaciones:mechanic_detail' op.pk %}" class="btn-primary" style="padding:4px 12px; font-size:.8125rem;">Ver mulas</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">No hay operaciones activas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

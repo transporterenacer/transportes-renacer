@@ -1,12 +1,20 @@
 from datetime import datetime
 
+from decimal import Decimal
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.catalogos.models import Proveedor
+from apps.core.decorators import role_required
+from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle
-from apps.operaciones.forms import OperationForm, ShiftForm, ShiftStopFormSet
-from apps.operaciones.models import Operation, Shift
+from apps.nomina.models import PayrollItem
+from apps.operaciones.forms import OperationExpenseForm, OperationForm, ShiftForm, ShiftStopFormSet
+from apps.operaciones.models import Operation, OperationExpense, Shift
 from apps.operaciones.services import (
     asignar_mulas,
     cancelar_turno,
@@ -33,11 +41,73 @@ def operacion_detail(request, pk):
     disponibles = Vehicle.objects.filter(estado=Vehicle.DISPONIBLE).exclude(
         pk__in=asignadas
     )
-    return render(
-        request,
-        "operaciones/operacion_detail.html",
-        {"operation": operation, "mulas_disponibles": disponibles},
+
+    # Financial summary
+    total_facturado = operation.billing_records.aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_cobrado = operation.client_payments.aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_nomina = PayrollItem.objects.filter(
+        shift__operation=operation, shift__estado=Shift.REALIZADO
+    ).aggregate(total=models.Sum("valor"))["total"] or Decimal(0)
+
+    gastos = operation.expenses.all()
+    total_combustible = gastos.filter(categoria=OperationExpense.COMBUSTIBLE).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_repuesto = gastos.filter(categoria=OperationExpense.REPUESTO).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_llanta = gastos.filter(categoria=OperationExpense.LLANTA).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_mantenimiento = gastos.filter(categoria=OperationExpense.MANTENIMIENTO).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_mano_obra = gastos.filter(categoria=OperationExpense.MANO_OBRA).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_peaje = gastos.filter(categoria=OperationExpense.PEAJE).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_lavado = gastos.filter(categoria=OperationExpense.LAVADO).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+    total_otros = gastos.filter(categoria=OperationExpense.OTROS).aggregate(
+        total=models.Sum("valor")
+    )["total"] or Decimal(0)
+
+    total_costos_gastos = (
+        total_combustible + total_repuesto + total_llanta + total_mantenimiento
+        + total_mano_obra + total_peaje + total_lavado + total_otros
     )
+    total_costos = total_nomina + total_costos_gastos
+    saldo = total_facturado - total_cobrado
+    resultado = total_facturado - total_costos
+    margen = (resultado / total_facturado * 100) if total_facturado else Decimal(0)
+
+    context = {
+        "operation": operation,
+        "mulas_disponibles": disponibles,
+        "total_facturado": total_facturado,
+        "total_cobrado": total_cobrado,
+        "saldo": saldo,
+        "total_nomina": total_nomina,
+        "total_combustible": total_combustible,
+        "total_repuesto": total_repuesto,
+        "total_llanta": total_llanta,
+        "total_mantenimiento": total_mantenimiento,
+        "total_mano_obra": total_mano_obra,
+        "total_peaje": total_peaje,
+        "total_lavado": total_lavado,
+        "total_otros": total_otros,
+        "total_costos": total_costos,
+        "resultado": resultado,
+        "margen": margen,
+    }
+    return render(request, "operaciones/operacion_detail.html", context)
 
 
 @login_required
@@ -141,3 +211,127 @@ def turno_cancelar(request, pk):
                 status=409,
             )
     return redirect("operaciones:detalle", pk=shift.operation_id)
+
+
+@login_required
+def gasto_lista(request, pk):
+    operation = get_object_or_404(Operation, pk=pk)
+    return render(request, "operaciones/gasto_lista.html", {"operation": operation})
+
+
+@login_required
+def gasto_nuevo(request, op_pk):
+    operation = get_object_or_404(Operation, pk=op_pk)
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, operation=operation)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.operation = operation
+            gasto.created_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto registrado.")
+            return redirect("operaciones:detalle", pk=operation.pk)
+    else:
+        form = OperationExpenseForm(operation=operation)
+    return render(request, "operaciones/expense_form.html", {
+        "form": form, "operation": operation, "editing": False,
+    })
+
+
+@login_required
+def gasto_editar(request, op_pk, gasto_pk):
+    operation = get_object_or_404(Operation, pk=op_pk)
+    gasto = get_object_or_404(OperationExpense, pk=gasto_pk, operation=operation)
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, instance=gasto, operation=operation)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.updated_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto actualizado.")
+            return redirect("operaciones:detalle", pk=operation.pk)
+    else:
+        form = OperationExpenseForm(instance=gasto, operation=operation)
+    return render(request, "operaciones/expense_form.html", {
+        "form": form, "operation": operation, "editing": True, "gasto": gasto,
+    })
+
+
+@login_required
+def gasto_eliminar(request, op_pk, gasto_pk):
+    if request.method != "POST":
+        return redirect("operaciones:detalle", pk=op_pk)
+    operation = get_object_or_404(Operation, pk=op_pk)
+    gasto = get_object_or_404(OperationExpense, pk=gasto_pk, operation=operation)
+    gasto.delete()
+    messages.success(request, "Gasto eliminado.")
+    return redirect("operaciones:detalle", pk=operation.pk)
+
+
+# ── Jefe Mecánico views ──────────────────────────────────────────────
+
+
+@role_required("Admin", "Secretaria", "Jefe Mecánico")
+def mechanic_operacion_list(request):
+    operaciones = Operation.objects.filter(
+        estado__in=[Operation.PROGRAMADA, Operation.ACTIVA]
+    ).order_by("-fecha_inicio")
+    return render(request, "operaciones/mechanic_operation_list.html", {"operaciones": operaciones})
+
+
+@role_required("Admin", "Secretaria", "Jefe Mecánico")
+def mechanic_operacion_detail(request, pk):
+    operation = get_object_or_404(
+        Operation.objects.prefetch_related("mulas__vehicle"),
+        pk=pk,
+    )
+    mulas_asignadas = operation.mulas.filter(activa=True).select_related("vehicle")
+    return render(request, "operaciones/mechanic_operation_detail.html", {
+        "operation": operation,
+        "mulas_asignadas": mulas_asignadas,
+    })
+
+
+@role_required("Admin", "Secretaria", "Jefe Mecánico")
+def mechanic_gasto_nuevo(request, op_pk, vehicle_pk):
+    operation = get_object_or_404(Operation, pk=op_pk)
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_pk)
+
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, operation=operation)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.operation = operation
+            gasto.vehicle = vehicle
+            gasto.created_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto registrado.")
+            return redirect("operaciones:mechanic_detail", pk=operation.pk)
+    else:
+        form = OperationExpenseForm(initial={"vehicle": vehicle}, operation=operation)
+
+    return render(request, "operaciones/mechanic_expense_form.html", {
+        "form": form, "operation": operation, "vehicle": vehicle, "editing": False,
+    })
+
+
+@role_required("Admin", "Secretaria", "Jefe Mecánico")
+def mechanic_gasto_editar(request, op_pk, vehicle_pk, gasto_pk):
+    operation = get_object_or_404(Operation, pk=op_pk)
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_pk)
+    gasto = get_object_or_404(OperationExpense, pk=gasto_pk, operation=operation, vehicle=vehicle)
+
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, instance=gasto, operation=operation)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.updated_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto actualizado.")
+            return redirect("operaciones:mechanic_detail", pk=operation.pk)
+    else:
+        form = OperationExpenseForm(instance=gasto, operation=operation)
+
+    return render(request, "operaciones/mechanic_expense_form.html", {
+        "form": form, "operation": operation, "vehicle": vehicle, "editing": True, "gasto": gasto,
+    })

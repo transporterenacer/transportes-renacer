@@ -5,6 +5,7 @@ GROUPS = {
     "Admin": {"__all__"},
     "Secretaria": {"__all__"},
     "Gerencia": {"view_all"},
+    "Jefe Mecánico": set(),
 }
 
 

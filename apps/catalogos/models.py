@@ -42,3 +42,19 @@ class IncidentCategory(AuditMixin):
 
     def __str__(self):
         return self.nombre
+
+
+class Proveedor(AuditMixin):
+    nombre = models.CharField(max_length=200)
+    nit = models.CharField("NIT", max_length=20, unique=True, null=True, blank=True)
+    contacto = models.CharField(max_length=200, blank=True, default="")
+    telefono = models.CharField(max_length=30, blank=True, default="")
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre

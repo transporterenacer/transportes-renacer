@@ -4,8 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
-from apps.catalogos.forms import CargoGeneratorForm, IncidentCategoryForm, PortForm
-from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
+from apps.catalogos.forms import CargoGeneratorForm, IncidentCategoryForm, PortForm, ProveedorForm
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port, Proveedor
 
 
 @login_required
@@ -19,9 +19,11 @@ def catalogos(request):
         "puertos": Port.objects.all().order_by("nombre"),
         "generadores": CargoGenerator.objects.all().order_by("nombre"),
         "categorias": IncidentCategory.objects.all().order_by("nombre"),
+        "proveedores": Proveedor.objects.all().order_by("nombre"),
         "puerto_form": PortForm(),
         "generador_form": CargoGeneratorForm(),
         "categoria_form": IncidentCategoryForm(),
+        "proveedor_form": ProveedorForm(),
     }
     return render(request, "catalogos/catalogos.html", context)
 
@@ -78,5 +80,31 @@ def api_crear_generador(request):
             telefono=data.get("telefono", "").strip(),
         )
         return JsonResponse({"id": generador.pk, "nombre": str(generador)})
+    except Exception as exc:  # noqa: BLE001
+        return JsonResponse({"error": str(exc)}, status=400)
+
+
+@login_required
+def crear_proveedor(request):
+    if request.method == "POST":
+        form = ProveedorForm(request.POST)
+        if form.is_valid():
+            form.save()
+    return redirect("catalogos:catalogos")
+
+
+@login_required
+def api_crear_proveedor(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+    try:
+        data = json.loads(request.body or b"{}")
+        proveedor = Proveedor.objects.create(
+            nombre=data.get("nombre", "").strip(),
+            nit=data.get("nit", "").strip() or None,
+            contacto=data.get("contacto", "").strip(),
+            telefono=data.get("telefono", "").strip(),
+        )
+        return JsonResponse({"id": proveedor.pk, "nombre": str(proveedor)})
     except Exception as exc:  # noqa: BLE001
         return JsonResponse({"error": str(exc)}, status=400)

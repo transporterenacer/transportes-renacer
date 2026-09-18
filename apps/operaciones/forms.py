@@ -5,7 +5,7 @@ from django import forms
 from apps.catalogos.models import IncidentCategory
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Operation
+from apps.operaciones.models import Operation, OperationExpense
 from apps.operaciones.services import mulas_disponibles
 
 
@@ -92,3 +92,31 @@ class ShiftStopForm(forms.Form):
 ShiftStopFormSet = forms.formset_factory(
     ShiftStopForm, extra=0, can_delete=True
 )
+
+
+class OperationExpenseForm(forms.ModelForm):
+    class Meta:
+        model = OperationExpense
+        fields = [
+            "categoria", "vehicle", "proveedor", "fecha", "valor",
+            "galones", "descripcion", "numero_factura", "observaciones",
+        ]
+        widgets = {
+            "fecha": forms.DateInput(attrs={"type": "date"}),
+            "descripcion": forms.Textarea(attrs={"rows": 2}),
+            "observaciones": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args, operation=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if operation:
+            self.fields["vehicle"].queryset = Vehicle.objects.filter(
+                operationvehicle__operation=operation,
+                operationvehicle__activa=True,
+            )
+        self.fields["proveedor"].queryset = Proveedor.objects.filter(activo=True)
+        self.fields["proveedor"].required = False
+        self.fields["galones"].required = False
+        self.fields["descripcion"].required = False
+        self.fields["numero_factura"].required = False
+        self.fields["observaciones"].required = False

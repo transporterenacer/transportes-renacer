@@ -1,6 +1,11 @@
 from django.core.management.base import BaseCommand
 
-from apps.documentos.models import DocumentType, content_type_driver, content_type_vehicle
+from apps.documentos.models import (
+    DocumentType,
+    content_type_driver,
+    content_type_expense,
+    content_type_vehicle,
+)
 
 
 class Command(BaseCommand):
@@ -71,6 +76,28 @@ class Command(BaseCommand):
             "replace_previous": False,
             "allow_multiple": True,
             "keep_history": True,
+            "is_required": False,
+        },
+        {
+            "codigo": "factura_gasto",
+            "nombre": "Factura de gasto",
+            "entity": content_type_expense,
+            "requires_expiration": False,
+            "requires_issue_date": False,
+            "replace_previous": False,
+            "allow_multiple": True,
+            "keep_history": False,
+            "is_required": False,
+        },
+        {
+            "codigo": "soporte_gasto",
+            "nombre": "Soporte de gasto",
+            "entity": content_type_expense,
+            "requires_expiration": False,
+            "requires_issue_date": False,
+            "replace_previous": False,
+            "allow_multiple": True,
+            "keep_history": False,
             "is_required": False,
         },
     ]

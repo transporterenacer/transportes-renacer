@@ -193,3 +193,53 @@ class Incident(AuditMixin):
 
     def __str__(self):
         return f"{self.categoria.nombre} - {self.shift}"
+
+
+class OperationExpense(AuditMixin):
+    COMBUSTIBLE = "combustible"
+    REPUESTO = "repuesto"
+    LLANTA = "llanta"
+    MANTENIMIENTO = "mantenimiento"
+    MANO_OBRA = "mano_obra"
+    PEAJE = "peaje"
+    LAVADO = "lavado"
+    OTROS = "otros"
+
+    CATEGORIAS = [
+        (COMBUSTIBLE, "Combustible / ACPM"),
+        (REPUESTO, "Repuesto"),
+        (LLANTA, "Llanta / Llantería"),
+        (MANTENIMIENTO, "Mantenimiento"),
+        (MANO_OBRA, "Mano de obra"),
+        (PEAJE, "Peaje"),
+        (LAVADO, "Lavado"),
+        (OTROS, "Otros"),
+    ]
+
+    operation = models.ForeignKey(
+        Operation, on_delete=models.PROTECT, related_name="expenses"
+    )
+    vehicle = models.ForeignKey(
+        Vehicle, on_delete=models.PROTECT, related_name="operation_expenses"
+    )
+    proveedor = models.ForeignKey(
+        "catalogos.Proveedor", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="gastos"
+    )
+    categoria = models.CharField(max_length=20, choices=CATEGORIAS)
+    fecha = models.DateField(default=timezone.localdate)
+    valor = models.DecimalField(max_digits=14, decimal_places=0)
+    galones = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True
+    )
+    descripcion = models.TextField(blank=True, default="")
+    numero_factura = models.CharField(max_length=50, blank=True, default="")
+    observaciones = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Gasto de operación"
+        verbose_name_plural = "Gastos de operación"
+        ordering = ["-fecha"]
+
+    def __str__(self):
+        return f"{self.get_categoria_display()} - {self.vehicle.placa} - ${self.valor}"

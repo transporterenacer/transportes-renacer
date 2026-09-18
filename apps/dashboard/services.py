@@ -10,7 +10,7 @@ from apps.facturacion.services import (
 from apps.flota.models import Vehicle
 from apps.nomina.models import DriverAdvance
 from apps.nomina.services import nomina_pendiente_actual
-from apps.operaciones.models import Incident, Operation, Shift
+from apps.operaciones.models import Incident, Operation, OperationExpense, Shift
 from apps.operaciones.services import detectar_dobles_turnos
 
 
@@ -243,3 +243,35 @@ def bloques_gantt_rango(desde=None, hasta=None, solo_activas=False):
         {"placa": placa, "bloques": sorted(f["bloques"], key=lambda b: b["inicio"])}
         for placa, f in sorted(filas.items())
     ]
+
+
+def kpis_gastos():
+    """Return total expenses and per-operation ranking with top vehicles."""
+    total = OperationExpense.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
+
+    ranking = list(
+        OperationExpense.objects.values(
+            "operation__pk", "operation__codigo", "operation__buque"
+        )
+        .annotate(total=Sum("valor"))
+        .order_by("-total")[:10]
+    )
+
+    for entry in ranking:
+        vehiculos = list(
+            OperationExpense.objects.filter(
+                operation__pk=entry["operation__pk"]
+            )
+            .values("vehicle__placa")
+            .annotate(total=Sum("valor"))
+            .order_by("-total")[:3]
+        )
+        entry["mulas"] = vehiculos
+        entry["pk"] = entry.pop("operation__pk")
+        entry["codigo"] = entry.pop("operation__codigo")
+        entry["buque"] = entry.pop("operation__buque")
+
+    return {
+        "total_gastos": total,
+        "ranking_operaciones": ranking,
+    }

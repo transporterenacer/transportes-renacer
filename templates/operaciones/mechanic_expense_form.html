@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Editar gasto{% else %}Nuevo gasto{% endif %} — {{ vehicle.placa }}{% endblock %}
+{% block page_title %}{% if editing %}Editar gasto{% else %}Nuevo gasto{% endif %}{% endblock %}
+{% block content %}
+<p class="eyebrow">Jefe Mecánico · Operación {{ operation.codigo }}</p>
+<h1>{{ vehicle.placa }} — {{ vehicle.marca }} {{ vehicle.modelo }}</h1>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="form-grid">
+    <div class="form-field">
+      <span class="kpi-label">Operación</span>
+      <span class="kpi-value" style="font-size:1.4rem;">{{ operation.buque }}</span>
+    </div>
+    <div class="form-field">
+      <span class="kpi-label">Mula</span>
+      <span class="kpi-value" style="font-size:1.4rem;">{{ vehicle.placa }}</span>
+    </div>
+  </div>
+</div>
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alerta"><p>{{ form.non_field_errors }}</p></div>
+  {% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      {{ form.categoria.label_tag }}{{ form.categoria }}{{ form.categoria.errors }}
+    </div>
+    <div class="form-field" style="display:none;">
+      {{ form.vehicle }}{{ form.vehicle.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.fecha.label_tag }}{{ form.fecha }}{{ form.fecha.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.valor.label_tag }}{{ form.valor }}{{ form.valor.errors }}
+    </div>
+    <div class="form-field" id="field-galones" style="display:none;">
+      {{ form.galones.label_tag }}{{ form.galones }}{{ form.galones.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.proveedor.label_tag }}
+      <div class="field-with-plus">
+        {{ form.proveedor }}
+        <button type="button" class="icon-btn" id="btn-nuevo-proveedor" aria-label="Nuevo proveedor">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+      {{ form.proveedor.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.numero_factura.label_tag }}{{ form.numero_factura }}{{ form.numero_factura.errors }}
+    </div>
+  </div>
+  <div class="form-field">
+    {{ form.descripcion.label_tag }}{{ form.descripcion }}{{ form.descripcion.errors }}
+  </div>
+  <div class="form-field">
+    {{ form.observaciones.label_tag }}{{ form.observaciones }}{{ form.observaciones.errors }}
+  </div>
+  <button type="submit" class="btn-primary">{% if editing %}Guardar cambios{% else %}Registrar gasto{% endif %}</button>
+  <a href="{% url 'operaciones:mechanic_detail' operation.pk %}" class="btn-secondary" style="margin-left:8px;">Cancelar</a>
+</form>
+
+<!-- Modal: nuevo proveedor -->
+<div class="modal-overlay" id="modal-proveedor" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 class="card-title" style="margin:0;">Nuevo proveedor</h3>
+      <button type="button" class="icon-btn modal-close" data-close="modal-proveedor" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form id="form-nuevo-proveedor" class="form-inline">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="prov-nombre">Nombre</label>
+          <input type="text" id="prov-nombre" required>
+        </div>
+        <div class="form-field">
+          <label for="prov-nit">NIT</label>
+          <input type="text" id="prov-nit">
+        </div>
+        <div class="form-field">
+          <label for="prov-contacto">Contacto</label>
+          <input type="text" id="prov-contacto">
+        </div>
+        <div class="form-field">
+          <label for="prov-telefono">Teléfono</label>
+          <input type="text" id="prov-telefono">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Guardar proveedor</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  var catSelect = document.querySelector('[name="categoria"]');
+  var galonesField = document.getElementById('field-galones');
+  function toggleGalones() {
+    galonesField.style.display = catSelect.value === 'combustible' ? '' : 'none';
+  }
+  catSelect.addEventListener('change', toggleGalones);
+  toggleGalones();
+
+  var btnProv = document.getElementById('btn-nuevo-proveedor');
+  var modalProv = document.getElementById('modal-proveedor');
+  btnProv.addEventListener('click', function () { modalProv.hidden = false; });
+  document.querySelectorAll('.modal-close').forEach(function (b) {
+    b.addEventListener('click', function () { document.getElementById(b.dataset.close).hidden = true; });
+  });
+  modalProv.addEventListener('click', function (e) { if (e.target === modalProv) modalProv.hidden = true; });
+
+  var formProv = document.getElementById('form-nuevo-proveedor');
+  formProv.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var payload = {};
+    formProv.querySelectorAll('input').forEach(function (input) {
+      var key = input.id.split('-')[1];
+      payload[key] = input.value;
+    });
+    fetch('{% url "catalogos:api_proveedor_crear" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(payload)
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.id) {
+        var sel = document.querySelector('select[name="proveedor"]');
+        var opt = document.createElement('option');
+        opt.value = data.id;
+        opt.textContent = data.nombre;
+        sel.appendChild(opt);
+        sel.value = data.id;
+        formProv.reset();
+        modalProv.hidden = true;
+      } else {
+        alert(data.error || 'Error al guardar.');
+      }
+    })
+    .catch(function () { alert('Error de conexión.'); });
+  });
+})();
+</script>
+{% endblock %}

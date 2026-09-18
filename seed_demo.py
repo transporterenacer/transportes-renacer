@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from apps.catalogos.models import CargoGenerator, IncidentCategory, Port
+from apps.catalogos.models import CargoGenerator, IncidentCategory, Port, Proveedor
 from apps.conductores.models import Driver
 from apps.documentos.management.commands.setup_document_types import Command as DocCmd
 from apps.documentos.models import Document, DocumentType
@@ -23,7 +23,7 @@ from apps.flota.models import Vehicle, VehicleDocument
 from apps.nomina.models import Payroll, PayrollItem, DriverAdvance
 from apps.nomina.services import crear_liquidacion, registrar_pago, resumen_liquidacion
 from apps.operaciones.models import (
-    Operation, Shift, ShiftStop, Incident, OperationVehicle,
+    Operation, Shift, ShiftStop, Incident, OperationVehicle, OperationExpense,
 )
 from apps.operaciones.services import asignar_mulas, registrar_turno, finalizar_operacion
 
@@ -31,6 +31,7 @@ from apps.operaciones.services import asignar_mulas, registrar_turno, finalizar_
 # PASO 1: Eliminar todos los datos existentes (respetar FKs)
 # ─────────────────────────────────────────────────────────────────────
 print("Eliminando datos existentes...")
+OperationExpense.objects.all().delete()
 Document.objects.all().delete()
 BillingRecord.objects.all().delete()
 ClientPayment.objects.all().delete()
@@ -42,6 +43,7 @@ ShiftStop.objects.all().delete()
 Shift.objects.all().delete()
 OperationVehicle.objects.all().delete()
 Operation.objects.all().delete()
+Proveedor.objects.all().delete()
 VehicleDocument.objects.all().delete()
 Vehicle.objects.all().delete()
 Driver.objects.all().delete()
@@ -375,7 +377,79 @@ except Exception as e:
     print(f"nómina: {e}")
 
 # ─────────────────────────────────────────────────────────────────────
-# PASO 10: Resumen
+# PASO 10: Crear proveedores
+# ─────────────────────────────────────────────────────────────────────
+proveedor_acpm, _ = Proveedor.objects.get_or_create(
+    nombre="Estación de Servicio Portuario", nit="900123456-1",
+    defaults={"contacto": "Carlos Vargas", "telefono": "3001112233"}
+)
+proveedor_repuestos, _ = Proveedor.objects.get_or_create(
+    nombre="Repuestos Diesel S.A.S", nit="900567890-2",
+    defaults={"contacto": "María López", "telefono": "3002223344"}
+)
+proveedor_llantas, _ = Proveedor.objects.get_or_create(
+    nombre="Llantería Portual", nit="900987654-3",
+    defaults={"contacto": "Pedro Sánchez", "telefono": "3003334455"}
+)
+proveedor_mantenimiento, _ = Proveedor.objects.get_or_create(
+    nombre="Taller Mecánico del Norte", nit="900456789-4",
+    defaults={"contacto": "Luis Rodríguez", "telefono": "3004445566"}
+)
+
+# ─────────────────────────────────────────────────────────────────────
+# PASO 11: Crear gastos de operación
+# ─────────────────────────────────────────────────────────────────────
+# Operación 1: 5 gastos
+OperationExpense.objects.create(
+    operation=op1, vehicle=abc, proveedor=proveedor_acpm,
+    categoria=OperationExpense.COMBUSTIBLE, fecha=hoy - timedelta(days=6),
+    valor=450000, galones=120, numero_factura="FAC-001234",
+    descripcion="ACPM para operación MSC NAPOLI",
+)
+OperationExpense.objects.create(
+    operation=op1, vehicle=def_, proveedor=proveedor_acpm,
+    categoria=OperationExpense.COMBUSTIBLE, fecha=hoy - timedelta(days=5),
+    valor=380000, galones=100, numero_factura="FAC-001235",
+)
+OperationExpense.objects.create(
+    operation=op1, vehicle=abc, proveedor=proveedor_repuestos,
+    categoria=OperationExpense.REPUESTO, fecha=hoy - timedelta(days=4),
+    valor=280000, descripcion="Filtro de aceite + filtro de aire",
+    numero_factura="FAC-001236",
+)
+OperationExpense.objects.create(
+    operation=op1, vehicle=ghi, proveedor=proveedor_llantas,
+    categoria=OperationExpense.LLANTA, fecha=hoy - timedelta(days=3),
+    valor=650000, descripcion="2 llantas 11R22.5 para Freightliner",
+    numero_factura="FAC-001237",
+)
+OperationExpense.objects.create(
+    operation=op1, vehicle=def_, proveedor=proveedor_mantenimiento,
+    categoria=OperationExpense.MANTENIMIENTO, fecha=hoy - timedelta(days=2),
+    valor=180000, descripcion="Cambio de aceite y revisión general",
+    numero_factura="FAC-001238",
+)
+
+# Operación 3 (finalizada): 3 gastos
+OperationExpense.objects.create(
+    operation=op3, vehicle=abc, proveedor=proveedor_acpm,
+    categoria=OperationExpense.COMBUSTIBLE, fecha=hoy - timedelta(days=18),
+    valor=520000, galones=140, numero_factura="FAC-002001",
+)
+OperationExpense.objects.create(
+    operation=op3, vehicle=def_, proveedor=proveedor_repuestos,
+    categoria=OperationExpense.REPUESTO, fecha=hoy - timedelta(days=16),
+    valor=95000, descripcion="Bombilla de freno delantera",
+    numero_factura="FAC-002002",
+)
+OperationExpense.objects.create(
+    operation=op3, vehicle=ghi, proveedor=None,
+    categoria=OperationExpense.PEAJE, fecha=hoy - timedelta(days=15),
+    valor=35000, descripcion="Peaje vía al puerto",
+)
+
+# ─────────────────────────────────────────────────────────────────────
+# PASO 12: Resumen
 # ─────────────────────────────────────────────────────────────────────
 print("\n=== Datos de demostración listos ===")
 print(f"Operaciones: {Operation.objects.count()}")
@@ -386,3 +460,5 @@ print(f"Conductores: {Driver.objects.count()}")
 print(f"Documentos: {Document.objects.count()}")
 print(f"Facturación: {BillingRecord.objects.count()}")
 print(f"Nómina: {Payroll.objects.count()}")
+print(f"Proveedores: {Proveedor.objects.count()}")
+print(f"Gastos: {OperationExpense.objects.count()}")

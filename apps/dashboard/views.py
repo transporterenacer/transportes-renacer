@@ -8,6 +8,7 @@ from apps.dashboard.services import (
     bloques_gantt,
     bloques_gantt_rango,
     kpis_financiero,
+    kpis_gastos,
     kpis_inicio,
     kpis_nomina,
     kpis_operativo,
@@ -46,6 +47,7 @@ def dashboard_inicio(request):
         .annotate(horas=Sum("horas_trabajadas"))
         .order_by("-horas")[:6]
     )
+    context["gastos"] = kpis_gastos()
     return render(request, "dashboard/inicio.html", context)
 
 

@@ -78,4 +78,28 @@
     </tbody>
   </table>
 </div>
+
+<div class="card" style="margin-top:24px;">
+  <h3 class="card-title">Proveedores</h3>
+  <form method="post" action="{% url 'catalogos:proveedor_nuevo' %}" class="form-inline">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">{{ proveedor_form.nombre.label_tag }}{{ proveedor_form.nombre }}</div>
+      <div class="form-field">{{ proveedor_form.nit.label_tag }}{{ proveedor_form.nit }}</div>
+      <div class="form-field">{{ proveedor_form.contacto.label_tag }}{{ proveedor_form.contacto }}</div>
+      <div class="form-field">{{ proveedor_form.telefono.label_tag }}{{ proveedor_form.telefono }}</div>
+    </div>
+    <button type="submit" class="btn-primary">Agregar proveedor</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>NIT</th><th>Contacto</th><th>Teléfono</th></tr></thead>
+    <tbody>
+      {% for p in proveedores %}
+      <tr><td>{{ p.nombre }}</td><td class="mono">{{ p.nit|default:"—" }}</td><td>{{ p.contacto|default:"—" }}</td><td class="mono">{{ p.telefono|default:"—" }}</td></tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="4">Sin proveedores registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
