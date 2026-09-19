@@ -186,9 +186,6 @@
       // Desktop: restore from localStorage
       if (!mq.matches) {
         apply(localStorage.getItem(KEY) === '1');
-      } else {
-        // Mobile: start collapsed
-        apply(true);
       }
 
       btn.addEventListener('click', function () {
@@ -224,7 +221,7 @@
           applyMobile(false);
           apply(localStorage.getItem(KEY) === '1');
         } else {
-          apply(true);
+          apply(false);
           applyMobile(false);
         }
       });
