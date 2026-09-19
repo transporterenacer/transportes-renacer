@@ -59,8 +59,10 @@
   <div class="form-field">
     {{ form.observaciones.label_tag }}{{ form.observaciones }}{{ form.observaciones.errors }}
   </div>
-  <button type="submit" class="btn-primary">{% if editing %}Guardar cambios{% else %}Registrar gasto{% endif %}</button>
-  <a href="{% url 'operaciones:mechanic_detail' operation.pk %}" class="btn-secondary" style="margin-left:8px;">Cancelar</a>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button type="submit" class="btn-primary">{% if editing %}Guardar cambios{% else %}Registrar gasto{% endif %}</button>
+    <a href="{% url 'operaciones:mechanic_detail' operation.pk %}" class="btn-secondary">Cancelar</a>
+  </div>
 </form>
 
 <!-- Modal: nuevo proveedor -->

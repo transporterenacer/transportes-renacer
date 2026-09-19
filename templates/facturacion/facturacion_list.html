@@ -65,7 +65,7 @@
 </table>
 
 <h2>Operaciones</h2>
-<div style="display:flex; gap:8px; margin-bottom:12px;">
+<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
   <a class="btn {% if filtro == 'todas' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}">Todas</a>
   <a class="btn {% if filtro == 'activas' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}?estado=activas">Activas</a>
   <a class="btn {% if filtro == 'pendientes' %}btn-primary{% endif %}" href="{% url 'facturacion:lista' %}?estado=pendientes">Por relacionar</a>

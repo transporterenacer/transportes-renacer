@@ -21,6 +21,7 @@
 
 <body class="{% block body_class %}{% endblock %}">
   {% if user.is_authenticated %}
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="sidebar">
     <div class="sidebar-header">
       <a class="brand-btn" href="{% url 'dashboard:inicio' %}">
@@ -167,17 +168,65 @@
     (function () {
       var KEY = 'tr_sidebar_collapsed';
       var btn = document.getElementById('sidebar-toggle');
+      var overlay = document.getElementById('sidebar-overlay');
       if (!btn) return;
       var body = document.body;
+      var mq = window.matchMedia('(max-width: 768px)');
+
       function apply(state) {
         body.classList.toggle('sidebar-collapsed', state);
         btn.setAttribute('aria-expanded', state ? 'false' : 'true');
       }
-      apply(localStorage.getItem(KEY) === '1');
+
+      function applyMobile(open) {
+        body.classList.toggle('sidebar-open', open);
+        if (overlay) overlay.classList.toggle('active', open);
+      }
+
+      // Desktop: restore from localStorage
+      if (!mq.matches) {
+        apply(localStorage.getItem(KEY) === '1');
+      } else {
+        // Mobile: start collapsed
+        apply(true);
+      }
+
       btn.addEventListener('click', function () {
-        var next = !body.classList.contains('sidebar-collapsed');
-        apply(next);
-        localStorage.setItem(KEY, next ? '1' : '0');
+        if (mq.matches) {
+          // Mobile: toggle drawer
+          var isOpen = body.classList.contains('sidebar-open');
+          applyMobile(!isOpen);
+        } else {
+          // Desktop: toggle collapse
+          var next = !body.classList.contains('sidebar-collapsed');
+          apply(next);
+          localStorage.setItem(KEY, next ? '1' : '0');
+        }
+      });
+
+      // Close sidebar on overlay click (mobile)
+      if (overlay) {
+        overlay.addEventListener('click', function () {
+          applyMobile(false);
+        });
+      }
+
+      // Close sidebar on nav link click (mobile)
+      document.querySelectorAll('.nav-link').forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (mq.matches) applyMobile(false);
+        });
+      });
+
+      // Handle resize
+      mq.addEventListener('change', function (e) {
+        if (!e.matches) {
+          applyMobile(false);
+          apply(localStorage.getItem(KEY) === '1');
+        } else {
+          apply(true);
+          applyMobile(false);
+        }
       });
     })();
   </script>

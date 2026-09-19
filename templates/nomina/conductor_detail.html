@@ -114,7 +114,7 @@
 </div>
 
 <h2>Historial de turnos</h2>
-<div style="display:flex; gap:8px; margin-bottom:12px;">
+<div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
   <a class="btn {% if filtro == 'todos' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}">Todos</a>
   <a class="btn {% if filtro == 'pendientes' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}?filtro=pendientes">Pendientes</a>
   <a class="btn {% if filtro == 'cubiertos' %}btn-primary{% endif %}" href="{% url 'nomina:conductor' driver.pk %}?filtro=cubiertos">Cubiertos</a>
