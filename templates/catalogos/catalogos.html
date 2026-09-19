@@ -102,4 +102,62 @@
     </tbody>
   </table>
 </div>
+
+<div class="card" style="margin-top:24px;">
+  <h3 class="card-title">Tipos de documento</h3>
+  <form method="post" action="{% url 'catalogos:documento_tipo_nuevo' %}" class="form-inline">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="dt-nombre">Nombre</label>
+        <input type="text" name="nombre" id="dt-nombre" required placeholder="Ej: SOAT">
+      </div>
+      <div class="form-field">
+        <label for="dt-codigo">Código</label>
+        <input type="text" name="codigo" id="dt-codigo" required placeholder="Ej: soat">
+      </div>
+      <div class="form-field">
+        <label for="dt-entity-app">App</label>
+        <select name="entity_app" id="dt-entity-app">
+          <option value="flota">Flota (Vehículos)</option>
+          <option value="conductores">Conductores</option>
+          <option value="operaciones">Operaciones</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="dt-entity-model">Modelo</label>
+        <select name="entity_model" id="dt-entity-model">
+          <option value="vehicle">vehicle</option>
+          <option value="driver">driver</option>
+          <option value="operationexpense">operationexpense</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 8px;">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="requires_expiration"> Requiere vencimiento
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="requires_issue_date"> Requiere fecha de expedición
+      </label>
+    </div>
+    <button type="submit" class="btn-primary" style="margin-top:8px;">Agregar tipo</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Nombre</th><th>Código</th><th>Entidad</th><th>Vence</th><th>Exp.</th></tr></thead>
+    <tbody>
+      {% for t in tipos_documento %}
+      <tr>
+        <td>{{ t.nombre }}</td>
+        <td class="mono">{{ t.codigo }}</td>
+        <td>{{ t.entity_type }}</td>
+        <td>{% if t.requires_expiration %}<span class="badge badge-ok">Sí</span>{% else %}—{% endif %}</td>
+        <td>{% if t.requires_issue_date %}<span class="badge badge-ok">Sí</span>{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr class="empty-row"><td colspan="5">Sin tipos de documento registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
