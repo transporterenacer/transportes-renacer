@@ -89,10 +89,9 @@ USE_THOUSAND_SEPARATOR = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "apps.core.storage.WhiteNoiseNonStrictStorage"
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "apps.core.storage.WhiteNoiseNonStrictStorage",
     },
 }
 
