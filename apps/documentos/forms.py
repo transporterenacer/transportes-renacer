@@ -12,11 +12,11 @@ class DocumentoForm(forms.Form):
     archivo = forms.FileField(label="Archivo")
     fecha_expedicion = forms.DateField(
         required=False, label="Fecha de expedición",
-        input_formats=["%d/%m/%Y", "%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}),
     )
     fecha_vencimiento = forms.DateField(
         required=False, label="Fecha de vencimiento",
-        input_formats=["%d/%m/%Y", "%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}),
     )
 
     def __init__(self, *args, **kwargs):
