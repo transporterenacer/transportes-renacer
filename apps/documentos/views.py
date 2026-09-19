@@ -1,9 +1,10 @@
 from urllib.parse import quote
+import json
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -219,3 +220,28 @@ def media(request, storage_path):
     except FileNotFoundError:
         raise Http404
     return HttpResponse(contenido, content_type=doc.mime_type)
+
+
+@login_required
+def api_crear_documento_tipo(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+    try:
+        data = json.loads(request.body or b"{}")
+        from django.contrib.contenttypes.models import ContentType
+
+        entity_type = ContentType.objects.get(
+            app_label=data["entity_app"], model=data["entity_model"]
+        )
+        tipo = DocumentType.objects.create(
+            nombre=data["nombre"].strip(),
+            codigo=data["codigo"].strip().lower(),
+            entity_type=entity_type,
+            requires_expiration=data.get("requires_expiration", False),
+            requires_issue_date=data.get("requires_issue_date", False),
+            replace_previous=data.get("replace_previous", False),
+            is_required=data.get("is_required", False),
+        )
+        return JsonResponse({"id": tipo.pk, "nombre": str(tipo), "codigo": tipo.codigo})
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=400)

@@ -15,4 +15,5 @@ urlpatterns = [
     path("driver/<int:pk>/desactivar/", views.desactivar_conductor, name="desactivar_conductor"),
     path("vehicle/<int:pk>/desactivar/", views.desactivar_vehiculo, name="desactivar_vehiculo"),
     path("media/<path:storage_path>", views.media, name="media"),
+    path("api/tipos/crear/", views.api_crear_documento_tipo, name="api_documento_tipo_crear"),
 ]

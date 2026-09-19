@@ -8,11 +8,149 @@
 {% endif %}
 <form method="post" enctype="multipart/form-data" class="card form-expediente">
   {% csrf_token %}
-  {{ form.as_p }}
+  <div class="form-field">
+    {{ form.tipo.label_tag }}
+    <div class="field-with-plus">
+      {{ form.tipo }}
+      <button type="button" class="icon-btn" id="btn-nuevo-tipo" aria-label="Nuevo tipo de documento">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+    </div>
+    {{ form.tipo.errors }}
+  </div>
+  <div class="form-field">
+    {{ form.archivo.label_tag }}{{ form.archivo }}{{ form.archivo.errors }}
+  </div>
+  <div class="form-field">
+    {{ form.fecha_expedicion.label_tag }}{{ form.fecha_expedicion }}{{ form.fecha_expedicion.errors }}
+  </div>
+  <div class="form-field">
+    {{ form.fecha_vencimiento.label_tag }}{{ form.fecha_vencimiento }}{{ form.fecha_vencimiento.errors }}
+  </div>
   {% if form.non_field_errors %}
     <p class="form-error">{{ form.non_field_errors.0 }}</p>
   {% endif %}
   <button type="submit" class="btn btn-primary">Subir documento</button>
   <a class="btn" href="{{ cancelar_url }}">Cancelar</a>
 </form>
+
+<!-- Modal: nuevo tipo de documento -->
+<div class="modal-overlay" id="modal-tipo" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 class="card-title" style="margin:0;">Nuevo tipo de documento</h3>
+      <button type="button" class="icon-btn modal-close" data-close="modal-tipo" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form id="form-nuevo-tipo" class="form-inline">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="tipo-nombre">Nombre</label>
+          <input type="text" id="tipo-nombre" required placeholder="Ej: SOAT">
+        </div>
+        <div class="form-field">
+          <label for="tipo-codigo">Código</label>
+          <input type="text" id="tipo-codigo" required placeholder="Ej: soat">
+        </div>
+        <div class="form-field">
+          <label for="tipo-entity-app">App del modelo</label>
+          <input type="text" id="tipo-entity-app" required placeholder="Ej: flota" value="flota">
+        </div>
+        <div class="form-field">
+          <label for="tipo-entity-model">Modelo</label>
+          <input type="text" id="tipo-entity-model" required placeholder="Ej: vehicle" value="vehicle">
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 8px;">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="tipo-requires-expiration"> Requiere vencimiento
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="tipo-requires-issue-date"> Requiere fecha de expedición
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="tipo-replace_previous"> Reemplaza anterior
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="tipo-is_required"> Documento obligatorio
+        </label>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:12px;">Guardar tipo</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  var entidadApp = '{{ entidad|default:"" }}';
+  var entidadModel = '';
+
+  // Detect entity type from URL params
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('vehicle')) entidadModel = 'vehicle';
+  else if (params.get('driver')) entidadModel = 'driver';
+  else if (params.get('operationexpense')) entidadModel = 'operationexpense';
+
+  // If entity is a Driver object, use 'conductores' app
+  if (entidadModel === 'driver') entidadApp = 'conductores';
+  else if (entidadModel === 'vehicle') entidadApp = 'flota';
+  else if (entidadModel === 'operationexpense') entidadApp = 'operaciones';
+
+  // Set defaults in modal
+  document.getElementById('tipo-entity-app').value = entidadApp;
+  document.getElementById('tipo-entity-model').value = entidadModel;
+
+  // Modal tipo
+  var btnTipo = document.getElementById('btn-nuevo-tipo');
+  var modalTipo = document.getElementById('modal-tipo');
+  btnTipo.addEventListener('click', function () { modalTipo.hidden = false; });
+  document.querySelectorAll('.modal-close').forEach(function (b) {
+    b.addEventListener('click', function () { document.getElementById(b.dataset.close).hidden = true; });
+  });
+  modalTipo.addEventListener('click', function (e) { if (e.target === modalTipo) modalTipo.hidden = true; });
+
+  // Submit tipo via AJAX
+  var formTipo = document.getElementById('form-nuevo-tipo');
+  formTipo.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var payload = {
+      nombre: document.getElementById('tipo-nombre').value,
+      codigo: document.getElementById('tipo-codigo').value,
+      entity_app: document.getElementById('tipo-entity-app').value,
+      entity_model: document.getElementById('tipo-entity-model').value,
+      requires_expiration: document.getElementById('tipo-requires-expiration').checked,
+      requires_issue_date: document.getElementById('tipo-requires-issue-date').checked,
+      replace_previous: document.getElementById('tipo-replace_previous').checked,
+      is_required: document.getElementById('tipo-is_required').checked,
+    };
+    fetch('{% url "documentos:api_documento_tipo_crear" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(payload)
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.codigo) {
+        var sel = document.querySelector('select[name="tipo"]');
+        var opt = document.createElement('option');
+        opt.value = data.codigo;
+        opt.textContent = data.nombre;
+        sel.appendChild(opt);
+        sel.value = data.codigo;
+        formTipo.reset();
+        document.getElementById('tipo-entity-app').value = entidadApp;
+        document.getElementById('tipo-entity-model').value = entidadModel;
+        modalTipo.hidden = true;
+      } else {
+        alert(data.error || 'Error al guardar.');
+      }
+    })
+    .catch(function () { alert('Error de conexión.'); });
+  });
+})();
+</script>
 {% endblock %}
