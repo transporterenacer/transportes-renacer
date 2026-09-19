@@ -15,6 +15,7 @@
   </div>
 </div>
 
+{% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
 <nav class="dashboard-nav">
   <a href="{% url 'dashboard:vencimientos' %}">Vencimientos</a>
   <a href="{% url 'dashboard:nomina' %}">Nómina</a>
@@ -22,8 +23,10 @@
   <a href="{% url 'dashboard:financiero' %}">Financiero</a>
   <a href="{% url 'dashboard:historial' %}">Historial</a>
 </nav>
+{% endif %}
 
 <div class="kpi-grid">
+  {% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
   <div class="card kpi-card">
     <div class="kpi-content">
       <div class="kpi-label">Operaciones</div>
@@ -56,6 +59,7 @@
     </div>
     <span class="kpi-icon" data-tone="warn"><span class="material-symbols-outlined">payments</span></span>
   </div>
+  {% endif %}
   <div class="card kpi-card">
     <div class="kpi-content">
       <div class="kpi-label">Gastos</div>
@@ -66,6 +70,7 @@
   </div>
 </div>
 
+{% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
 <div class="dash-cols">
   <div class="card">
     <div class="dash-card-head">
@@ -134,6 +139,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="dash-card-head">

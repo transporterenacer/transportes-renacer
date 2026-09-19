@@ -110,7 +110,9 @@
           <input class="search-input" type="text" placeholder="Buscar...">
         </div>
       {% block topbar_action %}
+      {% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
       <a class="btn-primary" href="{% url 'operaciones:turno_operacion' %}">+ Agregar turno</a>
+      {% endif %}
       {% endblock %}
         <div class="notif-wrap">
           <button class="icon-btn notif-btn" id="notif-toggle" type="button" aria-label="Notificaciones"
