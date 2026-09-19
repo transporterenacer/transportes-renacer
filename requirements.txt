@@ -4,5 +4,5 @@ gunicorn==23.0.0
 whitenoise==6.9.0
 dj-database-url==2.3.0
 python-dotenv==1.1.0
-psycopg[binary]==3.2.9
+psycopg[binary]>=3.2.9
 supabase==2.13.0
