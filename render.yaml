@@ -10,8 +10,10 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: postgresql://postgres.rwsetskqiuoghjsduzau:Jpw21otFL7yKU7dz@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+        sync: false
       - key: ALLOWED_HOSTS
         value: transportes-renacer.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://transportes-renacer.onrender.com"
       - key: DEBUG
         value: "false"
