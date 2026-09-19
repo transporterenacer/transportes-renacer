@@ -2,7 +2,7 @@ from datetime import time
 
 from django import forms
 
-from apps.catalogos.models import IncidentCategory
+from apps.catalogos.models import IncidentCategory, Proveedor
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
 from apps.operaciones.models import Operation, OperationExpense
