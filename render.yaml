@@ -17,3 +17,11 @@ services:
         value: "https://transportes-renacer.onrender.com"
       - key: DEBUG
         value: "false"
+      - key: DOCUMENT_STORAGE_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        value: "https://rwsetskqiuoghjsduzau.supabase.co"
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DOCUMENT_BUCKET
+        value: documents
