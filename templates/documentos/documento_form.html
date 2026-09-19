@@ -44,36 +44,16 @@
       </button>
     </div>
     <form id="form-nuevo-tipo" class="form-inline">
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="tipo-nombre">Nombre</label>
-          <input type="text" id="tipo-nombre" required placeholder="Ej: SOAT">
-        </div>
-        <div class="form-field">
-          <label for="tipo-codigo">Código</label>
-          <input type="text" id="tipo-codigo" required placeholder="Ej: soat">
-        </div>
-        <div class="form-field">
-          <label for="tipo-entity-app">App del modelo</label>
-          <input type="text" id="tipo-entity-app" required placeholder="Ej: flota" value="flota">
-        </div>
-        <div class="form-field">
-          <label for="tipo-entity-model">Modelo</label>
-          <input type="text" id="tipo-entity-model" required placeholder="Ej: vehicle" value="vehicle">
-        </div>
+      <div class="form-field">
+        <label for="tipo-nombre">Nombre</label>
+        <input type="text" id="tipo-nombre" required placeholder="Ej: SOAT, Tarjeta de Propiedad">
       </div>
-      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 8px;">
+      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 8px;">
         <label style="display:flex;align-items:center;gap:6px;">
           <input type="checkbox" id="tipo-requires-expiration"> Requiere vencimiento
         </label>
         <label style="display:flex;align-items:center;gap:6px;">
           <input type="checkbox" id="tipo-requires-issue-date"> Requiere fecha de expedición
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="tipo-replace_previous"> Reemplaza anterior
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="tipo-is_required"> Documento obligatorio
         </label>
       </div>
       <button type="submit" class="btn-primary" style="margin-top:12px;">Guardar tipo</button>
@@ -86,23 +66,13 @@
 <script>
 (function () {
   var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
-  var entidadApp = '{{ entidad|default:"" }}';
-  var entidadModel = '';
 
   // Detect entity type from URL params
   var params = new URLSearchParams(window.location.search);
-  if (params.get('vehicle')) entidadModel = 'vehicle';
-  else if (params.get('driver')) entidadModel = 'driver';
-  else if (params.get('operationexpense')) entidadModel = 'operationexpense';
-
-  // If entity is a Driver object, use 'conductores' app
-  if (entidadModel === 'driver') entidadApp = 'conductores';
-  else if (entidadModel === 'vehicle') entidadApp = 'flota';
-  else if (entidadModel === 'operationexpense') entidadApp = 'operaciones';
-
-  // Set defaults in modal
-  document.getElementById('tipo-entity-app').value = entidadApp;
-  document.getElementById('tipo-entity-model').value = entidadModel;
+  var entidadApp = '', entidadModel = '';
+  if (params.get('vehicle')) { entidadApp = 'flota'; entidadModel = 'vehicle'; }
+  else if (params.get('driver')) { entidadApp = 'conductores'; entidadModel = 'driver'; }
+  else if (params.get('operationexpense')) { entidadApp = 'operaciones'; entidadModel = 'operationexpense'; }
 
   // Modal tipo
   var btnTipo = document.getElementById('btn-nuevo-tipo');
@@ -117,15 +87,15 @@
   var formTipo = document.getElementById('form-nuevo-tipo');
   formTipo.addEventListener('submit', function (e) {
     e.preventDefault();
+    var nombre = document.getElementById('tipo-nombre').value.trim();
+    var codigo = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
     var payload = {
-      nombre: document.getElementById('tipo-nombre').value,
-      codigo: document.getElementById('tipo-codigo').value,
-      entity_app: document.getElementById('tipo-entity-app').value,
-      entity_model: document.getElementById('tipo-entity-model').value,
+      nombre: nombre,
+      codigo: codigo,
+      entity_app: entidadApp,
+      entity_model: entidadModel,
       requires_expiration: document.getElementById('tipo-requires-expiration').checked,
       requires_issue_date: document.getElementById('tipo-requires-issue-date').checked,
-      replace_previous: document.getElementById('tipo-replace_previous').checked,
-      is_required: document.getElementById('tipo-is_required').checked,
     };
     fetch('{% url "documentos:api_documento_tipo_crear" %}', {
       method: 'POST',
@@ -142,8 +112,6 @@
         sel.appendChild(opt);
         sel.value = data.codigo;
         formTipo.reset();
-        document.getElementById('tipo-entity-app').value = entidadApp;
-        document.getElementById('tipo-entity-model').value = entidadModel;
         modalTipo.hidden = true;
       } else {
         alert(data.error || 'Error al guardar.');
