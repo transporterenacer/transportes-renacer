@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db.models import Avg, Count, Max, Sum
+from django.utils import timezone
 
 from apps.conductores.models import Driver
 from apps.facturacion.services import (
@@ -10,7 +11,7 @@ from apps.facturacion.services import (
 from apps.flota.models import Vehicle
 from apps.nomina.models import DriverAdvance
 from apps.nomina.services import nomina_pendiente_actual
-from apps.operaciones.models import Incident, Operation, OperationExpense, Shift
+from apps.operaciones.models import Incident, Operation, OperationExpense, Shift, Viaje
 from apps.operaciones.services import detectar_dobles_turnos
 
 
@@ -27,8 +28,17 @@ def kpis_inicio():
     activas = Operation.objects.filter(estado=Operation.ACTIVA)
     globales = resumen_global()
     nomina_pendiente = nomina_pendiente_actual()
+    hoy = timezone.localdate()
+    viajes_mes = Viaje.objects.filter(
+        estado=Viaje.FINALIZADO,
+        fecha_ida__year=hoy.year,
+        fecha_ida__month=hoy.month,
+    ).count()
+    viajes_activos = Viaje.objects.filter(estado=Viaje.EN_VIAJE).count()
     return {
         "operaciones_activas": activas.count(),
+        "viajes_mes": viajes_mes,
+        "viajes_activos": viajes_activos,
         "mulas_en_operacion": Vehicle.objects.filter(estado=Vehicle.EN_OPERACION).count(),
         "mulas_disponibles": Vehicle.objects.filter(estado=Vehicle.DISPONIBLE).count(),
         "mulas_en_taller": Vehicle.objects.filter(estado=Vehicle.EN_TALLER).count(),
