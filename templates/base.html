@@ -34,7 +34,7 @@
         <span class="material-symbols-outlined">dashboard</span> Inicio
       </a>
 
-      {% if 'Admin' in user_groups or 'Secretaria' in user_groups or 'Jefe Mecánico' in user_groups %}
+      {% if 'Jefe Mecánico' in user_groups %}
       <a class="nav-link {% if request.resolver_match.url_name == 'mechanic_lista' %}active{% endif %}"
         href="{% url 'operaciones:mechanic_lista' %}">
         <span class="material-symbols-outlined">conveyor_belt</span> Operaciones
