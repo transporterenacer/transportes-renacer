@@ -65,7 +65,7 @@ class NominaViewsTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(
-            response, "No hay turnos pendientes de pago en el periodo seleccionado."
+            response, "No hay turnos ni viajes pendientes de pago en el periodo seleccionado."
         )
         self.assertEqual(Payroll.objects.count(), 0)
 

@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from apps.conductores.models import Driver
 from apps.nomina.models import DriverAdvance, Payroll, PayrollItem
-from apps.operaciones.models import Shift
+from apps.operaciones.models import Shift, Viaje
 
 
 def generar_numero_liquidacion(anio):
@@ -54,15 +54,31 @@ def turnos_pendientes_pago(desde, hasta):
     )
 
 
+def viajes_pendientes_pago(desde, hasta):
+    desde_dt = timezone.make_aware(datetime.combine(desde, time.min))
+    hasta_dt = timezone.make_aware(datetime.combine(hasta + timedelta(days=1), time.min))
+    return (
+        Viaje.objects.filter(
+            estado=Viaje.FINALIZADO,
+            fecha_vuelta__gte=desde_dt,
+            fecha_vuelta__lt=hasta_dt,
+            payroll_items__isnull=True,
+        )
+        .select_related("driver", "vehicle", "cliente")
+        .order_by("fecha_vuelta")
+    )
+
+
 def _items_conductor(driver):
-    return PayrollItem.objects.filter(shift__driver=driver).select_related(
-        "shift", "payroll"
-    ).order_by(
-        "payroll__periodo_inicio",
-        "payroll__periodo_fin",
-        "shift__fecha_inicio",
-        "shift__fecha_fin",
-        "id",
+    from django.db.models import Q
+    return (
+        PayrollItem.objects.filter(Q(shift__driver=driver) | Q(viaje__driver=driver))
+        .select_related("shift", "viaje", "payroll")
+        .order_by(
+            "payroll__periodo_inicio",
+            "payroll__periodo_fin",
+            "id",
+        )
     )
 
 
@@ -94,7 +110,7 @@ def saldo_conductor(driver):
     cubiertos = 0
     detalle = []
     for item in _items_conductor(driver).select_related(
-        "shift__vehicle", "shift__operation"
+        "shift__vehicle", "shift__operation", "viaje__vehicle", "viaje__cliente"
     ):
         pendiente = item.valor - item.pagado
         if pendiente > 0:
@@ -105,6 +121,7 @@ def saldo_conductor(driver):
             {
                 "periodo": item.payroll,
                 "shift": item.shift,
+                "viaje": item.viaje,
                 "valor": item.valor,
                 "pagado": item.pagado,
                 "pendiente": pendiente,
@@ -142,9 +159,10 @@ def conductor_pagado(driver):
 
 def crear_liquidacion(desde, hasta, usuario=None):
     turnos = list(turnos_pendientes_pago(desde, hasta))
-    if not turnos:
+    viajes = list(viajes_pendientes_pago(desde, hasta))
+    if not turnos and not viajes:
         raise ValidationError(
-            "No hay turnos pendientes de pago en el periodo seleccionado."
+            "No hay turnos ni viajes pendientes de pago en el periodo seleccionado."
         )
     solape = Payroll.objects.filter(
         periodo_inicio__lte=hasta, periodo_fin__gte=desde
@@ -170,6 +188,12 @@ def crear_liquidacion(desde, hasta, usuario=None):
             PayrollItem.objects.create(
                 payroll=payroll, shift=shift, valor=shift.valor_pagado
             )
+        for viaje in viajes:
+            total += viaje.valor_conductor
+            conductores.add(viaje.driver_id)
+            PayrollItem.objects.create(
+                payroll=payroll, viaje=viaje, valor=viaje.valor_conductor
+            )
         payroll.total = total
         payroll.save(update_fields=["total"])
     for driver in Driver.objects.filter(pk__in=conductores):
@@ -186,13 +210,15 @@ def _estado_periodo(total, pagado):
 
 
 def resumen_liquidacion(payroll):
-    items = (
-        payroll.items.select_related("shift__driver", "shift__vehicle")
-        .order_by("shift__driver__nombre", "shift__fecha_inicio")
-    )
+    items = payroll.items.select_related(
+        "shift__driver", "shift__vehicle", "viaje__driver", "viaje__vehicle"
+    ).order_by("id")
     resumen = {}
     for item in items:
-        driver = item.shift.driver
+        if item.viaje_id:
+            driver = item.viaje.driver
+        else:
+            driver = item.shift.driver
         if driver.pk not in resumen:
             resumen[driver.pk] = {
                 "driver": driver,
@@ -205,7 +231,8 @@ def resumen_liquidacion(payroll):
             }
         fila = resumen[driver.pk]
         fila["turnos"] += 1
-        fila["horas"] += item.shift.horas_trabajadas
+        if item.shift_id:
+            fila["horas"] += item.shift.horas_trabajadas
         fila["total"] += item.valor
         fila["cubierto"] += item.pagado
     for fila in resumen.values():

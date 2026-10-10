@@ -13,11 +13,15 @@ from apps.core.decorators import role_required
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.flota.models import Vehicle
 from apps.nomina.models import PayrollItem
-from apps.operaciones.forms import OperationExpenseForm, OperationForm, ShiftForm, ShiftStopFormSet
-from apps.operaciones.models import Operation, OperationExpense, Shift
+from apps.operaciones.forms import OperationExpenseForm, OperationForm, ShiftForm, ShiftStopFormSet, ViajeForm
+from apps.operaciones.models import Operation, OperationExpense, Shift, Viaje
 from apps.operaciones.services import (
     asignar_mulas,
     cancelar_turno,
+    cancelar_viaje,
+    crear_viaje,
+    finalizar_viaje,
+    iniciar_viaje,
     liberar_mula,
     registrar_turno,
 )
@@ -335,3 +339,148 @@ def mechanic_gasto_editar(request, op_pk, vehicle_pk, gasto_pk):
     return render(request, "operaciones/mechanic_expense_form.html", {
         "form": form, "operation": operation, "vehicle": vehicle, "editing": True, "gasto": gasto,
     })
+
+
+@login_required
+def viaje_lista(request):
+    viajes = Viaje.objects.select_related("cliente", "vehicle", "driver").order_by("-fecha_ida")
+    return render(request, "operaciones/viaje_list.html", {"viajes": viajes})
+
+
+@login_required
+def viaje_nuevo(request):
+    if request.method == "POST":
+        form = ViajeForm(request.POST)
+        if form.is_valid():
+            try:
+                viaje = crear_viaje(
+                    cliente=form.cleaned_data["cliente"],
+                    vehicle=form.cleaned_data["vehicle"],
+                    driver=form.cleaned_data["driver"],
+                    origen=form.cleaned_data["origen"],
+                    destino=form.cleaned_data["destino"],
+                    fecha_ida=form.cleaned_data["fecha_ida"],
+                    fecha_vuelta=form.cleaned_data["fecha_vuelta"],
+                    valor_cobrado=form.cleaned_data["valor_cobrado"],
+                    valor_conductor=form.cleaned_data["valor_conductor"],
+                    observaciones=form.cleaned_data.get("observaciones", ""),
+                    usuario=request.user,
+                )
+                messages.success(request, f"Viaje {viaje.codigo} creado.")
+                return redirect("operaciones:viaje_detalle", pk=viaje.pk)
+            except ValidationError as exc:
+                form.add_error(None, exc.message)
+    else:
+        form = ViajeForm()
+    return render(request, "operaciones/viaje_form.html", {"form": form, "creando": True})
+
+
+@login_required
+def viaje_detalle(request, pk):
+    viaje = get_object_or_404(
+        Viaje.objects.select_related("cliente", "vehicle", "driver"), pk=pk
+    )
+    gastos = viaje.expenses.select_related("vehicle", "proveedor").order_by("-fecha")
+    total_gastos = gastos.aggregate(t=models.Sum("valor"))["t"] or Decimal("0")
+    resultado = viaje.valor_cobrado - total_gastos
+    return render(request, "operaciones/viaje_detail.html", {
+        "viaje": viaje,
+        "gastos": gastos,
+        "total_gastos": total_gastos,
+        "resultado": resultado,
+    })
+
+
+@role_required("Admin", "Secretaria")
+def viaje_iniciar(request, pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    if request.method == "POST":
+        try:
+            iniciar_viaje(viaje, usuario=request.user)
+            messages.success(request, f"Viaje {viaje.codigo} iniciado.")
+        except ValidationError as exc:
+            messages.error(request, exc.message)
+    return redirect("operaciones:viaje_detalle", pk=pk)
+
+
+@role_required("Admin", "Secretaria")
+def viaje_finalizar(request, pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    if request.method == "POST":
+        try:
+            finalizar_viaje(viaje, usuario=request.user)
+            messages.success(request, f"Viaje {viaje.codigo} finalizado. Se registró el cobro.")
+        except ValidationError as exc:
+            messages.error(request, exc.message)
+    return redirect("operaciones:viaje_detalle", pk=pk)
+
+
+@role_required("Admin", "Secretaria")
+def viaje_cancelar(request, pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    if request.method == "POST":
+        motivo = request.POST.get("motivo", "")
+        try:
+            cancelar_viaje(viaje, motivo, usuario=request.user)
+            messages.success(request, f"Viaje {viaje.codigo} cancelado.")
+        except ValidationError as exc:
+            messages.error(request, exc.message)
+    return redirect("operaciones:viaje_detalle", pk=pk)
+
+
+@login_required
+def viaje_gasto_lista(request, pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    gastos = viaje.expenses.select_related("vehicle", "proveedor").order_by("-fecha")
+    return render(request, "operaciones/gasto_lista.html", {
+        "viaje": viaje, "gastos": gastos, "es_viaje": True,
+    })
+
+
+@login_required
+def viaje_gasto_nuevo(request, pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, viaje=viaje)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.viaje = viaje
+            gasto.created_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto registrado.")
+            return redirect("operaciones:viaje_detalle", pk=viaje.pk)
+    else:
+        form = OperationExpenseForm(viaje=viaje)
+    return render(request, "operaciones/expense_form.html", {
+        "form": form, "viaje": viaje, "es_viaje": True,
+    })
+
+
+@login_required
+def viaje_gasto_editar(request, pk, gasto_pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    gasto = get_object_or_404(OperationExpense, pk=gasto_pk, viaje=viaje)
+    if request.method == "POST":
+        form = OperationExpenseForm(request.POST, instance=gasto, viaje=viaje)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.viaje = viaje
+            gasto.updated_by = request.user
+            gasto.save()
+            messages.success(request, "Gasto actualizado.")
+            return redirect("operaciones:viaje_detalle", pk=viaje.pk)
+    else:
+        form = OperationExpenseForm(instance=gasto, viaje=viaje)
+    return render(request, "operaciones/expense_form.html", {
+        "form": form, "viaje": viaje, "es_viaje": True, "editing": True,
+    })
+
+
+@role_required("Admin", "Secretaria")
+def viaje_gasto_eliminar(request, pk, gasto_pk):
+    viaje = get_object_or_404(Viaje, pk=pk)
+    gasto = get_object_or_404(OperationExpense, pk=gasto_pk, viaje=viaje)
+    if request.method == "POST":
+        gasto.delete()
+        messages.success(request, "Gasto eliminado.")
+    return redirect("operaciones:viaje_detalle", pk=viaje.pk)

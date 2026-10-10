@@ -5,7 +5,7 @@ from django import forms
 from apps.catalogos.models import IncidentCategory, Proveedor
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Operation, OperationExpense
+from apps.operaciones.models import Operation, OperationExpense, Viaje
 from apps.operaciones.services import mulas_disponibles
 
 
@@ -107,16 +107,44 @@ class OperationExpenseForm(forms.ModelForm):
             "observaciones": forms.Textarea(attrs={"rows": 2}),
         }
 
-    def __init__(self, *args, operation=None, **kwargs):
+    def __init__(self, *args, operation=None, viaje=None, **kwargs):
         super().__init__(*args, **kwargs)
         if operation:
+            self.instance.operation = operation
             self.fields["vehicle"].queryset = Vehicle.objects.filter(
                 operaciones__operation=operation,
                 operaciones__activa=True,
             )
+        elif viaje:
+            self.instance.viaje = viaje
+            self.fields["vehicle"].queryset = Vehicle.objects.filter(pk=viaje.vehicle_id)
+            self.fields["vehicle"].initial = viaje.vehicle
         self.fields["proveedor"].queryset = Proveedor.objects.filter(activo=True)
         self.fields["proveedor"].required = False
         self.fields["galones"].required = False
         self.fields["descripcion"].required = False
         self.fields["numero_factura"].required = False
         self.fields["observaciones"].required = False
+
+
+class ViajeForm(forms.ModelForm):
+    class Meta:
+        model = Viaje
+        fields = [
+            "cliente", "vehicle", "driver", "origen", "destino",
+            "fecha_ida", "fecha_vuelta", "valor_cobrado",
+            "valor_conductor", "observaciones",
+        ]
+        widgets = {
+            "fecha_ida": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "fecha_vuelta": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "observaciones": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["vehicle"].queryset = Vehicle.objects.filter(estado=Vehicle.DISPONIBLE)
+        self.fields["vehicle"].label = "Mula"
+        self.fields["cliente"].label = "Cliente"
+        self.fields["valor_cobrado"].localize = True
+        self.fields["valor_conductor"].localize = True

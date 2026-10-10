@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Gastos - {{ operation.codigo }}{% endblock %}
+{% block title %}Gastos - {% if es_viaje %}{{ viaje.codigo }}{% else %}{{ operation.codigo }}{% endif %}{% endblock %}
 {% block content %}
-<p class="eyebrow">Operación · Gastos</p>
-<h1>{{ operation.buque }}</h1>
-<p class="meta-update">{{ operation.codigo }} · {{ operation.generador_de_carga }}</p>
-<a href="{% url 'operaciones:detalle' operation.pk %}" class="btn-secondary">Volver al detalle</a>
+<p class="eyebrow">{% if es_viaje %}Viaje{% else %}Operación{% endif %} · Gastos</p>
+<h1>{% if es_viaje %}{{ viaje.origen }} → {{ viaje.destino }}{% else %}{{ operation.buque }}{% endif %}</h1>
+<p class="meta-update">{% if es_viaje %}{{ viaje.codigo }} · {{ viaje.cliente.nombre }}{% else %}{{ operation.codigo }} · {{ operation.generador_de_carga }}{% endif %}</p>
+{% if es_viaje %}<a href="{% url 'operaciones:viaje_detalle' viaje.pk %}" class="btn-secondary">Volver al detalle</a>
+{% else %}<a href="{% url 'operaciones:detalle' operation.pk %}" class="btn-secondary">Volver al detalle</a>{% endif %}
 {% endblock %}

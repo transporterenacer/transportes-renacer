@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -217,7 +218,12 @@ class OperationExpense(AuditMixin):
     ]
 
     operation = models.ForeignKey(
-        Operation, on_delete=models.PROTECT, related_name="expenses"
+        Operation, on_delete=models.PROTECT, related_name="expenses",
+        null=True, blank=True
+    )
+    viaje = models.ForeignKey(
+        "Viaje", on_delete=models.PROTECT, related_name="expenses",
+        null=True, blank=True
     )
     vehicle = models.ForeignKey(
         Vehicle, on_delete=models.PROTECT, related_name="operation_expenses"
@@ -243,3 +249,73 @@ class OperationExpense(AuditMixin):
 
     def __str__(self):
         return f"{self.get_categoria_display()} - {self.vehicle.placa} - ${self.valor}"
+
+    def clean(self):
+        super().clean()
+        if bool(self.operation_id) == bool(self.viaje_id):
+            raise ValidationError("El gasto debe pertenecer exactamente a una operación o a un viaje.")
+
+
+def generar_numero_viaje(anio):
+    prefix = f"VJ-{anio}-"
+    ultimo = Viaje.objects.filter(codigo__startswith=prefix).order_by("-codigo").first()
+    if ultimo is None:
+        return f"{prefix}001"
+    secuencia = int(ultimo.codigo.rsplit("-", 1)[1]) + 1
+    return f"{prefix}{secuencia:03d}"
+
+
+class Viaje(AuditMixin):
+    PENDIENTE = "pendiente"
+    EN_VIAJE = "en_viaje"
+    FINALIZADO = "finalizado"
+    CANCELADO = "cancelado"
+
+    ESTADOS = [
+        (PENDIENTE, "Pendiente"),
+        (EN_VIAJE, "En viaje"),
+        (FINALIZADO, "Finalizado"),
+        (CANCELADO, "Cancelado"),
+    ]
+
+    codigo = models.CharField(max_length=20, unique=True, blank=True)
+    cliente = models.ForeignKey(
+        CargoGenerator, on_delete=models.PROTECT, related_name="viajes"
+    )
+    vehicle = models.ForeignKey(
+        Vehicle, on_delete=models.PROTECT, related_name="viajes"
+    )
+    driver = models.ForeignKey(
+        Driver, on_delete=models.PROTECT, related_name="viajes"
+    )
+    origen = models.CharField(max_length=120)
+    destino = models.CharField(max_length=120)
+    fecha_ida = models.DateTimeField()
+    fecha_vuelta = models.DateTimeField()
+    valor_cobrado = models.DecimalField(max_digits=14, decimal_places=0)
+    valor_conductor = models.DecimalField(max_digits=14, decimal_places=0)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE)
+    observaciones = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Viaje local"
+        verbose_name_plural = "Viajes locales"
+        ordering = ["-fecha_ida"]
+
+    def __str__(self):
+        return f"{self.codigo} - {self.origen} → {self.destino}"
+
+    def clean(self):
+        super().clean()
+        if self.fecha_ida and self.fecha_vuelta and self.fecha_vuelta <= self.fecha_ida:
+            raise ValidationError({"fecha_vuelta": "La fecha de vuelta debe ser posterior a la de ida."})
+        if self.valor_cobrado is not None and self.valor_cobrado <= 0:
+            raise ValidationError({"valor_cobrado": "El valor cobrado debe ser mayor a cero."})
+        if self.valor_conductor is not None and self.valor_conductor < 0:
+            raise ValidationError({"valor_conductor": "El valor del conductor no puede ser negativo."})
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            anio = self.fecha_ida.year if self.fecha_ida else timezone.localdate().year
+            self.codigo = generar_numero_viaje(anio)
+        super().save(*args, **kwargs)

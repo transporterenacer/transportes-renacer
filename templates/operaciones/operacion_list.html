@@ -123,7 +123,10 @@
 </div>
 {% else %}
 <h1>Operaciones activas</h1>
-<a class="btn-primary" href="{% url 'operaciones:nuevo' %}">Nueva operación</a>
+<div style="display:flex; gap:8px; flex-wrap:wrap;">
+  <a class="btn-primary" href="{% url 'operaciones:nuevo' %}">Nueva operación portuaria</a>
+  <a class="btn-secondary" href="{% url 'operaciones:viaje_nuevo' %}">Nuevo viaje local</a>
+</div>
 <table class="table">
   <thead><tr><th>Código</th><th>Buque</th><th>Generador de carga</th><th>Puerto</th><th>Estado</th></tr></thead>
   <tbody>

@@ -22,4 +22,15 @@ urlpatterns = [
     path("mecanico/<int:pk>/", views.mechanic_operacion_detail, name="mechanic_detail"),
     path("mecanico/<int:op_pk>/mula/<int:vehicle_pk>/gasto/nuevo/", views.mechanic_gasto_nuevo, name="mechanic_gasto_nuevo"),
     path("mecanico/<int:op_pk>/mula/<int:vehicle_pk>/gasto/<int:gasto_pk>/editar/", views.mechanic_gasto_editar, name="mechanic_gasto_editar"),
+    # Viajes locales
+    path("viajes/", views.viaje_lista, name="viaje_lista"),
+    path("viajes/nuevo/", views.viaje_nuevo, name="viaje_nuevo"),
+    path("viajes/<int:pk>/", views.viaje_detalle, name="viaje_detalle"),
+    path("viajes/<int:pk>/iniciar/", views.viaje_iniciar, name="viaje_iniciar"),
+    path("viajes/<int:pk>/finalizar/", views.viaje_finalizar, name="viaje_finalizar"),
+    path("viajes/<int:pk>/cancelar/", views.viaje_cancelar, name="viaje_cancelar"),
+    path("viajes/<int:pk>/gastos/", views.viaje_gasto_lista, name="viaje_gastos"),
+    path("viajes/<int:pk>/gastos/nuevo/", views.viaje_gasto_nuevo, name="viaje_gasto_nuevo"),
+    path("viajes/<int:pk>/gastos/<int:gasto_pk>/editar/", views.viaje_gasto_editar, name="viaje_gasto_editar"),
+    path("viajes/<int:pk>/gastos/<int:gasto_pk>/eliminar/", views.viaje_gasto_eliminar, name="viaje_gasto_eliminar"),
 ]

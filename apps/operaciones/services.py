@@ -1,9 +1,13 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Incident, Operation, OperationVehicle, Shift, ShiftStop
+from apps.operaciones.models import (
+    Incident, Operation, OperationVehicle, Shift, ShiftStop, Viaje,
+)
 
 DESCANSO_MINIMO_HORAS = 8
 
@@ -178,3 +182,83 @@ def detectar_dobles_turnos(driver=None, desde=None, hasta=None):
                     {"driver": a.driver, "turno_a": a, "turno_b": b, "tipo": "descanso"}
                 )
     return result
+
+
+def crear_viaje(*, cliente, vehicle, driver, origen, destino,
+                fecha_ida, fecha_vuelta, valor_cobrado, valor_conductor,
+                observaciones="", usuario=None):
+    if fecha_vuelta <= fecha_ida:
+        raise ValidationError("La fecha de vuelta debe ser posterior a la de ida.")
+    solape_vehiculo = Viaje.objects.filter(
+        vehicle=vehicle, estado__in=[Viaje.PENDIENTE, Viaje.EN_VIAJE],
+        fecha_ida__lt=fecha_vuelta, fecha_vuelta__gt=fecha_ida
+    ).exists()
+    if solape_vehiculo:
+        raise ValidationError("La mula ya tiene un viaje en ese horario.")
+    solape_driver = Viaje.objects.filter(
+        driver=driver, estado__in=[Viaje.PENDIENTE, Viaje.EN_VIAJE],
+        fecha_ida__lt=fecha_vuelta, fecha_vuelta__gt=fecha_ida
+    ).exists()
+    if solape_driver:
+        raise ValidationError("El conductor ya tiene un viaje en ese horario.")
+    viaje = Viaje(
+        cliente=cliente, vehicle=vehicle, driver=driver,
+        origen=origen, destino=destino,
+        fecha_ida=fecha_ida, fecha_vuelta=fecha_vuelta,
+        valor_cobrado=valor_cobrado, valor_conductor=valor_conductor,
+        observaciones=observaciones,
+        created_by=usuario, updated_by=usuario,
+    )
+    viaje.full_clean()
+    viaje.save()
+    return viaje
+
+
+def iniciar_viaje(viaje, usuario=None):
+    if viaje.estado != Viaje.PENDIENTE:
+        raise ValidationError("Solo se pueden iniciar viajes pendientes.")
+    viaje.estado = Viaje.EN_VIAJE
+    viaje.updated_by = usuario
+    viaje.save(update_fields=["estado", "updated_by", "updated_at"])
+    viaje.vehicle.estado = Vehicle.EN_OPERACION
+    viaje.vehicle.save(update_fields=["estado"])
+    return viaje
+
+
+def finalizar_viaje(viaje, usuario=None):
+    if viaje.estado != Viaje.EN_VIAJE:
+        raise ValidationError("Solo se pueden finalizar viajes en curso.")
+    from apps.facturacion.models import BillingRecord
+    with transaction.atomic():
+        viaje.estado = Viaje.FINALIZADO
+        viaje.updated_by = usuario
+        viaje.save(update_fields=["estado", "updated_by", "updated_at"])
+        viaje.vehicle.estado = Vehicle.DISPONIBLE
+        viaje.vehicle.save(update_fields=["estado"])
+        BillingRecord.objects.create(
+            viaje=viaje, operation=None,
+            numero_relacion=f"VJ-{viaje.codigo}",
+            fecha=timezone.localdate(),
+            horas=Decimal("0"), tarifa_hora=Decimal("0"),
+            valor=viaje.valor_cobrado,
+            estado=BillingRecord.PENDIENTE,
+            created_by=usuario, updated_by=usuario,
+        )
+    return viaje
+
+
+def cancelar_viaje(viaje, motivo, usuario=None):
+    if viaje.estado in (Viaje.FINALIZADO, Viaje.CANCELADO):
+        raise ValidationError("El viaje ya está cerrado.")
+    if viaje.payroll_items.exists():
+        raise ValidationError("No se puede cancelar un viaje que ya fue liquidado en nómina.")
+    estado_anterior = viaje.estado
+    with transaction.atomic():
+        viaje.estado = Viaje.CANCELADO
+        viaje.observaciones = (viaje.observaciones + f"\nCancelado: {motivo}").strip()
+        viaje.updated_by = usuario
+        viaje.save(update_fields=["estado", "observaciones", "updated_by", "updated_at"])
+        if estado_anterior == Viaje.EN_VIAJE:
+            viaje.vehicle.estado = Vehicle.DISPONIBLE
+            viaje.vehicle.save(update_fields=["estado"])
+    return viaje

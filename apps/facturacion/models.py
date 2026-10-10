@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -19,7 +20,12 @@ class BillingRecord(AuditMixin):
     ]
 
     operation = models.ForeignKey(
-        Operation, on_delete=models.PROTECT, related_name="billing_records"
+        Operation, on_delete=models.PROTECT, related_name="billing_records",
+        null=True, blank=True
+    )
+    viaje = models.ForeignKey(
+        "operaciones.Viaje", on_delete=models.PROTECT, related_name="billing_records",
+        null=True, blank=True
     )
     numero_relacion = models.CharField(
         max_length=40, blank=True, null=True
@@ -45,8 +51,15 @@ class BillingRecord(AuditMixin):
         ordering = ["fecha"]
 
     def __str__(self):
+        if self.viaje_id:
+            return f"{self.viaje.codigo} - ${self.valor}"
         placa = self.shift.vehicle.placa if self.shift_id else "-"
         return f"{self.operation.codigo} - {placa}"
+
+    def clean(self):
+        super().clean()
+        if bool(self.operation_id) == bool(self.viaje_id):
+            raise ValidationError("El registro debe pertenecer exactamente a una operación o a un viaje.")
 
 
 class ClientPayment(AuditMixin):

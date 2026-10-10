@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +17,8 @@ from apps.operaciones.models import Operation, Shift
 class NominaDashboardTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="ana", password="x")
+        admin_group, _ = Group.objects.get_or_create(name="Admin")
+        self.user.groups.add(admin_group)
         self.generador = CargoGenerator.objects.create(nombre="Terminal de Carga SA")
         self.puerto = Port.objects.create(nombre="Sociedad Portuaria Regional")
         self.v1 = Vehicle.objects.create(placa="ABC123")

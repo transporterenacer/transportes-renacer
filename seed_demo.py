@@ -6,8 +6,8 @@ para presentación a cliente.
 Uso:
     python manage.py shell < seed_demo.py
 """
-import io
-from datetime import date, timedelta
+from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -15,22 +15,28 @@ from django.utils import timezone
 from apps.catalogos.models import CargoGenerator, IncidentCategory, Port, Proveedor
 from apps.conductores.models import Driver
 from apps.documentos.management.commands.setup_document_types import Command as DocCmd
-from apps.documentos.models import Document, DocumentType
-from apps.documentos.services import cargar_documento
+from apps.documentos.models import Document
 from apps.facturacion.models import BillingRecord, ClientPayment
 from apps.facturacion.services import crear_relacion
 from apps.flota.models import Vehicle, VehicleDocument
 from apps.nomina.models import Payroll, PayrollItem, DriverAdvance
 from apps.nomina.services import crear_liquidacion, registrar_pago, resumen_liquidacion
 from apps.operaciones.models import (
-    Operation, Shift, ShiftStop, Incident, OperationVehicle, OperationExpense,
+    Operation, Shift, ShiftStop, Incident, OperationVehicle, OperationExpense, Viaje,
 )
-from apps.operaciones.services import asignar_mulas, registrar_turno, finalizar_operacion
+from apps.operaciones.services import (
+    asignar_mulas, registrar_turno, finalizar_operacion,
+    crear_viaje, iniciar_viaje, finalizar_viaje,
+)
 
 # ─────────────────────────────────────────────────────────────────────
 # PASO 1: Eliminar todos los datos existentes (respetar FKs)
 # ─────────────────────────────────────────────────────────────────────
 print("Eliminando datos existentes...")
+PayrollItem.objects.filter(viaje__isnull=False).delete()
+OperationExpense.objects.filter(viaje__isnull=False).delete()
+BillingRecord.objects.filter(viaje__isnull=False).delete()
+Viaje.objects.all().delete()
 OperationExpense.objects.all().delete()
 Document.objects.all().delete()
 BillingRecord.objects.all().delete()
@@ -169,48 +175,49 @@ asignar_mulas(op2, [jkl, pqr])
 asignar_mulas(op3, [abc, def_, ghi])
 
 # ─────────────────────────────────────────────────────────────────────
-# PASO 6: Crear turnos con paradas
+# PASO 6: Crear turnos con paradas (fechas relativas a hoy)
 # ─────────────────────────────────────────────────────────────────────
+
+def dt(dias_atras, hora, minuto=0):
+    base = hoy - timedelta(days=dias_atras)
+    return timezone.datetime(base.year, base.month, base.day, hora, minuto)
+
 
 # --- Operación 1 (ACTIVA): 7 turnos en los últimos 7 días ---
 
 # Día 1 (hoy - 7): Turno día completo con parada de 1h
 registrar_turno(
     operation=op1, vehicle=abc, driver=carlos,
-    fecha_inicio=timezone.datetime(2026, 8, 29, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 29, 18, 0),
+    fecha_inicio=dt(7, 6), fecha_fin=dt(7, 18),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
     stops=[{
-        "inicio": timezone.datetime(2026, 8, 29, 12, 0),
-        "fin": timezone.datetime(2026, 8, 29, 13, 0),
+        "inicio": dt(7, 12),
+        "fin": dt(7, 13),
     }],
 )
 
 # Día 1: Turno noche (cruza medianoche)
 registrar_turno(
     operation=op1, vehicle=def_, driver=ana,
-    fecha_inicio=timezone.datetime(2026, 8, 29, 18, 0),
-    fecha_fin=timezone.datetime(2026, 8, 30, 6, 0),
+    fecha_inicio=dt(7, 18), fecha_fin=dt(6, 6),
     tipo=Shift.NOCHE, valor_estandar=180000, meta_horas=11,
 )
 
 # Día 2 (hoy - 6): Turno día con parada de 45min
 registrar_turno(
     operation=op1, vehicle=ghi, driver=luis,
-    fecha_inicio=timezone.datetime(2026, 8, 30, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 30, 18, 0),
+    fecha_inicio=dt(6, 6), fecha_fin=dt(6, 18),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
     stops=[{
-        "inicio": timezone.datetime(2026, 8, 30, 14, 0),
-        "fin": timezone.datetime(2026, 8, 30, 14, 45),
+        "inicio": dt(6, 14),
+        "fin": dt(6, 14, 45),
     }],
 )
 
 # Día 3 (hoy - 5): Turno día con novedad (lluvia) - turno corto
 registrar_turno(
     operation=op1, vehicle=abc, driver=pedro,
-    fecha_inicio=timezone.datetime(2026, 8, 31, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 31, 14, 0),
+    fecha_inicio=dt(5, 6), fecha_fin=dt(5, 14),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
     novedad_categoria=lluvia,
     novedad_descripcion="Lluvia intensa 09:00-11:00, cierre temporal de operaciones",
@@ -219,79 +226,71 @@ registrar_turno(
 # Día 4 (hoy - 4): Turno día completo
 registrar_turno(
     operation=op1, vehicle=def_, driver=maria,
-    fecha_inicio=timezone.datetime(2026, 9, 1, 6, 0),
-    fecha_fin=timezone.datetime(2026, 9, 1, 18, 0),
+    fecha_inicio=dt(4, 6), fecha_fin=dt(4, 18),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
 )
 
 # Día 5 (hoy - 3): Turno noche con parada de 30min
 registrar_turno(
     operation=op1, vehicle=ghi, driver=juan,
-    fecha_inicio=timezone.datetime(2026, 9, 1, 18, 0),
-    fecha_fin=timezone.datetime(2026, 9, 2, 6, 0),
+    fecha_inicio=dt(3, 18), fecha_fin=dt(2, 6),
     tipo=Shift.NOCHE, valor_estandar=180000, meta_horas=11,
     stops=[{
-        "inicio": timezone.datetime(2026, 9, 2, 2, 0),
-        "fin": timezone.datetime(2026, 9, 2, 2, 30),
+        "inicio": dt(2, 2),
+        "fin": dt(2, 2, 30),
     }],
 )
 
 # Día 6 (hoy - 2): Turno día completo
 registrar_turno(
     operation=op1, vehicle=abc, driver=carlos,
-    fecha_inicio=timezone.datetime(2026, 9, 2, 6, 0),
-    fecha_fin=timezone.datetime(2026, 9, 2, 18, 0),
+    fecha_inicio=dt(2, 6), fecha_fin=dt(2, 18),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
 )
 
 # Día 7 (hoy - 1): Turno día con novedad (falla mecánica)
 registrar_turno(
     operation=op1, vehicle=def_, driver=ana,
-    fecha_inicio=timezone.datetime(2026, 9, 3, 6, 0),
-    fecha_fin=timezone.datetime(2026, 9, 3, 15, 0),
+    fecha_inicio=dt(1, 6), fecha_fin=dt(1, 15),
     tipo=Shift.DIA, valor_estandar=180000, meta_horas=11,
     novedad_categoria=falla_mecanica,
     novedad_descripcion="Falla en sistema hidráulico, reparación en sitio 12:00-14:00",
     stops=[{
-        "inicio": timezone.datetime(2026, 9, 3, 12, 0),
-        "fin": timezone.datetime(2026, 9, 3, 14, 0),
+        "inicio": dt(1, 12),
+        "fin": dt(1, 14),
     }],
 )
 
-# --- Operación 3 (FINALIZADA): 4 turnos ---
+# --- Operación 3 (FINALIZADA): 4 turnos entre hoy-20 y hoy-17 ---
 
 registrar_turno(
     operation=op3, vehicle=abc, driver=carlos,
-    fecha_inicio=timezone.datetime(2026, 8, 16, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 16, 18, 0),
+    fecha_inicio=dt(20, 6), fecha_fin=dt(20, 18),
     tipo=Shift.DIA, valor_estandar=170000, meta_horas=11,
     stops=[{
-        "inicio": timezone.datetime(2026, 8, 16, 12, 0),
-        "fin": timezone.datetime(2026, 8, 16, 13, 0),
+        "inicio": dt(20, 12),
+        "fin": dt(20, 13),
     }],
 )
 
 registrar_turno(
     operation=op3, vehicle=def_, driver=ana,
-    fecha_inicio=timezone.datetime(2026, 8, 17, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 17, 18, 0),
+    fecha_inicio=dt(19, 6), fecha_fin=dt(19, 18),
     tipo=Shift.DIA, valor_estandar=170000, meta_horas=11,
 )
 
 registrar_turno(
     operation=op3, vehicle=ghi, driver=luis,
-    fecha_inicio=timezone.datetime(2026, 8, 18, 18, 0),
-    fecha_fin=timezone.datetime(2026, 8, 19, 6, 0),
+    fecha_inicio=dt(18, 18), fecha_fin=dt(17, 6),
     tipo=Shift.NOCHE, valor_estandar=170000, meta_horas=11,
 )
 
 registrar_turno(
     operation=op3, vehicle=abc, driver=pedro,
-    fecha_inicio=timezone.datetime(2026, 8, 19, 6, 0),
-    fecha_fin=timezone.datetime(2026, 8, 19, 18, 0),
+    fecha_inicio=dt(17, 6), fecha_fin=dt(17, 18),
     tipo=Shift.DIA, valor_estandar=170000, meta_horas=11,
     novedad_categoria=demora_cliente,
-    novedad_descripcion="Demora en asignación deSlots por parte del generador",
+    novedad_descripcion="Demora en asignación de Slots por parte del generador",
 )
 
 # ─────────────────────────────────────────────────────────────────────
@@ -302,70 +301,12 @@ if turnos_op1:
     crear_relacion(op1, turnos_op1, usuario=user)
 
 # ─────────────────────────────────────────────────────────────────────
-# PASO 8: Crear documentos
-# ─────────────────────────────────────────────────────────────────────
-soat = DocumentType.objects.get(codigo="soat")
-tecno = DocumentType.objects.get(codigo="tecnomecanica")
-tarjeta = DocumentType.objects.get(codigo="tarjeta_propiedad")
-cedula = DocumentType.objects.get(codigo="cedula")
-licencia = DocumentType.objects.get(codigo="licencia")
-
-
-def subir_doc(tipo, entidad, fecha_exp, fecha_venc=None):
-    contenido = b"%PDF-1.4 \n Documento de ejemplo de Transportes Renacer"
-    try:
-        cargar_documento(
-            tipo=tipo, entidad=entidad, archivo=io.BytesIO(contenido),
-            content_type="application/pdf", extension="pdf", tamano=len(contenido),
-            fecha_expedicion=fecha_exp, fecha_vencimiento=fecha_venc,
-            usuario=user,
-        )
-    except Exception as e:
-        print(f"doc {tipo.codigo} {entidad}: {e}")
-
-
-# ABC123: SOAT próximo (10 días), tecno vencida (-5), tarjeta registrada
-subir_doc(soat, abc, hoy - timedelta(days=355), hoy + timedelta(days=10))
-subir_doc(tecno, abc, hoy - timedelta(days=380), hoy - timedelta(days=5))
-subir_doc(tarjeta, abc, date(2020, 3, 15))
-
-# DEF456: SOAT vigente
-subir_doc(soat, def_, hoy - timedelta(days=200), hoy + timedelta(days=160))
-
-# GHI789: SOAT vencido
-subir_doc(soat, ghi, hoy - timedelta(days=400), hoy - timedelta(days=40))
-
-# JKL012: SOAT vigente, tecno vigente
-subir_doc(soat, jkl, hoy - timedelta(days=100), hoy + timedelta(days=265))
-subir_doc(tecno, jkl, hoy - timedelta(days=300), hoy + timedelta(days=65))
-
-# PQR678: Sin documentos (en taller)
-
-# Cédula y licencia para conductores
-subir_doc(cedula, carlos, date(2015, 5, 10))
-subir_doc(licencia, carlos, hoy - timedelta(days=100), hoy + timedelta(days=300))
-
-subir_doc(cedula, ana, date(2018, 2, 20))
-subir_doc(licencia, ana, hoy - timedelta(days=200), hoy + timedelta(days=200))
-
-subir_doc(cedula, luis, date(2016, 8, 15))
-subir_doc(licencia, luis, hoy - timedelta(days=50), hoy + timedelta(days=350))
-
-subir_doc(cedula, pedro, date(2019, 11, 3))
-# Pedro sin licencia (faltante)
-
-subir_doc(cedula, maria, date(2017, 7, 25))
-subir_doc(licencia, maria, hoy - timedelta(days=300), hoy + timedelta(days=100))
-
-# Juan sin documentos (faltante total)
-
-# ─────────────────────────────────────────────────────────────────────
-# PASO 9: Crear nómina
+# PASO 8: Crear nómina
 # ─────────────────────────────────────────────────────────────────────
 try:
-    # Nómina de la semana del 27 ago - 2 sep 2026
+    # Nómina de la semana pasada
     payroll = crear_liquidacion(
-        date(2026, 8, 27), date(2026, 9, 2), usuario=user
+        hoy - timedelta(days=7), hoy - timedelta(days=1), usuario=user
     )
     # Registrar pagos parciales para algunos conductores
     for fila in resumen_liquidacion(payroll):
@@ -449,6 +390,56 @@ OperationExpense.objects.create(
 )
 
 # ─────────────────────────────────────────────────────────────────────
+# PASO 11b: Crear viajes locales de ejemplo
+# ─────────────────────────────────────────────────────────────────────
+
+def dt_viaje(fecha, hora, minuto=0):
+    return timezone.make_aware(timezone.datetime(fecha.year, fecha.month, fecha.day, hora, minuto))
+
+# Viaje 1: FINALIZADO (hace ~10 días) con gastos
+viaje1 = crear_viaje(
+    cliente=generador1, vehicle=jkl, driver=maria,
+    origen="Barranquilla", destino="Cartagena",
+    fecha_ida=dt_viaje(hoy - timedelta(days=10), 6),
+    fecha_vuelta=dt_viaje(hoy - timedelta(days=10), 16),
+    valor_cobrado=Decimal("1200000"), valor_conductor=Decimal("600000"),
+    usuario=user,
+)
+iniciar_viaje(viaje1, usuario=user)
+finalizar_viaje(viaje1, usuario=user)
+OperationExpense.objects.create(
+    viaje=viaje1, vehicle=jkl, proveedor=proveedor_acpm,
+    categoria=OperationExpense.COMBUSTIBLE, fecha=hoy - timedelta(days=10),
+    valor=Decimal("380000"), galones=Decimal("100"), numero_factura="FV-001",
+)
+OperationExpense.objects.create(
+    viaje=viaje1, vehicle=jkl,
+    categoria=OperationExpense.PEAJE, fecha=hoy - timedelta(days=10),
+    valor=Decimal("70000"), descripcion="Peaje Barranquilla-Cartagena",
+)
+
+# Viaje 2: EN_VIAJE (iniciado hace 2 días)
+viaje2 = crear_viaje(
+    cliente=generador2, vehicle=pqr, driver=juan,
+    origen="Barranquilla", destino="Santa Marta",
+    fecha_ida=dt_viaje(hoy - timedelta(days=2), 5),
+    fecha_vuelta=dt_viaje(hoy - timedelta(days=2), 18),
+    valor_cobrado=Decimal("1500000"), valor_conductor=Decimal("750000"),
+    usuario=user,
+)
+iniciar_viaje(viaje2, usuario=user)
+
+# Viaje 3: PENDIENTE (sale mañana)
+crear_viaje(
+    cliente=generador1, vehicle=jkl, driver=luis,
+    origen="Cartagena", destino="Barranquilla",
+    fecha_ida=dt_viaje(hoy + timedelta(days=1), 7),
+    fecha_vuelta=dt_viaje(hoy + timedelta(days=1), 17),
+    valor_cobrado=Decimal("1100000"), valor_conductor=Decimal("550000"),
+    usuario=user,
+)
+
+# ─────────────────────────────────────────────────────────────────────
 # PASO 12: Resumen
 # ─────────────────────────────────────────────────────────────────────
 print("\n=== Datos de demostración listos ===")
@@ -462,3 +453,4 @@ print(f"Facturación: {BillingRecord.objects.count()}")
 print(f"Nómina: {Payroll.objects.count()}")
 print(f"Proveedores: {Proveedor.objects.count()}")
 print(f"Gastos: {OperationExpense.objects.count()}")
+print(f"Viajes locales: {Viaje.objects.count()}")

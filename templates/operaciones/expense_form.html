@@ -68,7 +68,8 @@
   </div>
   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
     <button type="submit" class="btn-primary">{% if editing %}Guardar cambios{% else %}Registrar gasto{% endif %}</button>
-    <a href="{% url 'operaciones:detalle' operation.pk %}" class="btn-secondary">Cancelar</a>
+    {% if es_viaje %}<a href="{% url 'operaciones:viaje_detalle' viaje.pk %}" class="btn-secondary">Cancelar</a>
+    {% else %}<a href="{% url 'operaciones:detalle' operation.pk %}" class="btn-secondary">Cancelar</a>{% endif %}
   </div>
 </form>
 

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Viaje {{ viaje.codigo }}{% endblock %}
+{% block page_title %}Viaje {{ viaje.codigo }}{% endblock %}
+{% block content %}
+<p class="eyebrow">Transportes Renacer</p>
+<h1>{{ viaje.origen }} → {{ viaje.destino }}</h1>
+<p class="meta-update">{{ viaje.codigo }} · {{ viaje.cliente.nombre }} · {{ viaje.get_estado_display }}</p>
+
+<div class="card">
+  <div class="card-title">Acciones</div>
+  {% if viaje.estado == 'pendiente' %}
+  <form method="post" action="{% url 'operaciones:viaje_iniciar' viaje.pk %}" style="display:inline">{% csrf_token %}
+    <button type="submit" class="btn-primary">Iniciar viaje</button>
+  </form>
+  {% elif viaje.estado == 'en_viaje' %}
+  <form method="post" action="{% url 'operaciones:viaje_finalizar' viaje.pk %}" style="display:inline">{% csrf_token %}
+    <button type="submit" class="btn-primary">Finalizar viaje</button>
+  </form>
+  {% endif %}
+  {% if viaje.estado == 'pendiente' or viaje.estado == 'en_viaje' %}
+  <form method="post" action="{% url 'operaciones:viaje_cancelar' viaje.pk %}" style="display:inline" onsubmit="return confirm('¿Cancelar este viaje?');">{% csrf_token %}
+    <input type="hidden" name="motivo" value="Cancelado por el usuario">
+    <button type="submit" class="btn-secondary">Cancelar viaje</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title">Datos del viaje</div>
+  <div class="form-grid">
+    <div class="form-field"><span class="kpi-label">Mula</span><p>{{ viaje.vehicle.placa }} ({{ viaje.vehicle.marca }})</p></div>
+    <div class="form-field"><span class="kpi-label">Conductor</span><p>{{ viaje.driver.nombre }}</p></div>
+    <div class="form-field"><span class="kpi-label">Ida</span><p>{{ viaje.fecha_ida|date:"d/m/Y H:i" }}</p></div>
+    <div class="form-field"><span class="kpi-label">Vuelta</span><p>{{ viaje.fecha_vuelta|date:"d/m/Y H:i" }}</p></div>
+    <div class="form-field"><span class="kpi-label">Valor cobrado</span><p class="kpi-value">${{ viaje.valor_cobrado|floatformat:0 }}</p></div>
+    <div class="form-field"><span class="kpi-label">Valor conductor</span><p class="kpi-value">${{ viaje.valor_conductor|floatformat:0 }}</p></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Gastos del viaje</div>
+  <a class="btn-primary" href="{% url 'operaciones:viaje_gasto_nuevo' viaje.pk %}">+ Agregar gasto</a>
+  {% if gastos %}
+  <table class="table">
+    <thead><tr><th>Fecha</th><th>Categoría</th><th>Valor</th><th>Factura</th><th></th></tr></thead>
+    <tbody>
+      {% for g in gastos %}
+      <tr>
+        <td>{{ g.fecha|date:"d/m/Y" }}</td>
+        <td>{{ g.get_categoria_display }}</td>
+        <td>${{ g.valor|floatformat:0 }}</td>
+        <td class="mono">{{ g.numero_factura }}</td>
+        <td><a class="btn-link" href="{% url 'operaciones:viaje_gasto_editar' viaje.pk g.pk %}">Editar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-txt">Sin gastos registrados.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title">Resumen financiero</div>
+  <div class="form-grid">
+    <div class="form-field"><span class="kpi-label">Total gastos</span><p class="kpi-value">${{ total_gastos|floatformat:0 }}</p></div>
+    <div class="form-field"><span class="kpi-label">Resultado (cobrado - gastos)</span><p class="kpi-value">${{ resultado|floatformat:0 }}</p></div>
+  </div>
+</div>
+{% endblock %}

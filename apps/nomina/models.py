@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -39,7 +40,12 @@ class PayrollItem(AuditMixin):
         Payroll, on_delete=models.CASCADE, related_name="items"
     )
     shift = models.ForeignKey(
-        Shift, on_delete=models.PROTECT, related_name="payroll_items", unique=True
+        Shift, on_delete=models.PROTECT, related_name="payroll_items",
+        null=True, blank=True, unique=True
+    )
+    viaje = models.ForeignKey(
+        "operaciones.Viaje", on_delete=models.PROTECT, related_name="payroll_items",
+        null=True, blank=True
     )
     valor = models.DecimalField(max_digits=14, decimal_places=0)
     pagado = models.DecimalField(max_digits=14, decimal_places=0, default=0)
@@ -49,7 +55,14 @@ class PayrollItem(AuditMixin):
         verbose_name_plural = "Items de liquidación"
 
     def __str__(self):
+        if self.viaje_id:
+            return f"{self.payroll.numero} - {self.viaje}"
         return f"{self.payroll.numero} - {self.shift}"
+
+    def clean(self):
+        super().clean()
+        if bool(self.shift_id) == bool(self.viaje_id):
+            raise ValidationError("El item debe tener exactamente un turno o un viaje.")
 
 
 class DriverAdvance(AuditMixin):

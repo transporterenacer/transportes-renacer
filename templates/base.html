@@ -42,9 +42,13 @@
       {% endif %}
 
       {% if 'Admin' in user_groups or 'Secretaria' in user_groups %}
-      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' and request.resolver_match.url_name != 'mechanic_lista' %}active{% endif %}"
+      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' and request.resolver_match.url_name != 'mechanic_lista' and not request.resolver_match.url_name|slice:':5' == 'viaje' %}active{% endif %}"
         href="{% url 'operaciones:lista' %}">
         <span class="material-symbols-outlined">settings</span> Op. Completa
+      </a>
+      <a class="nav-link {% if request.resolver_match.app_name == 'operaciones' and request.resolver_match.url_name|slice:':5' == 'viaje' %}active{% endif %}"
+        href="{% url 'operaciones:viaje_lista' %}">
+        <span class="material-symbols-outlined">local_shipping</span> Viajes
       </a>
       <a class="nav-link {% if request.resolver_match.url_name == 'gantt_semana' %}active{% endif %}"
          href="{% url 'dashboard:gantt_semana' %}">

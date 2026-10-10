@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Viajes locales{% endblock %}
+{% block page_title %}Viajes locales{% endblock %}
+{% block content %}
+<p class="eyebrow">Transportes Renacer</p>
+<h1>Viajes locales</h1>
+<p class="meta-update">Fletes ciudad a ciudad</p>
+
+<div class="card">
+  <div class="card-title">Nuevo viaje</div>
+  <a class="btn-primary" href="{% url 'operaciones:viaje_nuevo' %}">Crear viaje</a>
+</div>
+
+<div class="card">
+  <div class="card-title">Viajes</div>
+  {% if viajes %}
+  <table class="table">
+    <thead>
+      <tr><th>Código</th><th>Ruta</th><th>Cliente</th><th>Mula</th><th>Conductor</th><th>Estado</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for v in viajes %}
+      <tr>
+        <td class="mono">{{ v.codigo }}</td>
+        <td>{{ v.origen }} → {{ v.destino }}</td>
+        <td>{{ v.cliente.nombre }}</td>
+        <td>{{ v.vehicle.placa }}</td>
+        <td>{{ v.driver.nombre }}</td>
+        <td><span class="badge {% if v.estado == 'finalizado' %}badge-ok{% else %}badge-idle{% endif %}">{{ v.get_estado_display }}</span></td>
+        <td><a class="btn-link" href="{% url 'operaciones:viaje_detalle' v.pk %}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-txt">No hay viajes registrados.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -247,10 +247,11 @@ def bloques_gantt_rango(desde=None, hasta=None, solo_activas=False):
 
 def kpis_gastos():
     """Return total expenses and per-operation ranking with top vehicles."""
+    gastos_op = OperationExpense.objects.filter(operation__isnull=False)
     total = OperationExpense.objects.aggregate(total=Sum("valor"))["total"] or Decimal(0)
 
     ranking = list(
-        OperationExpense.objects.values(
+        gastos_op.values(
             "operation__pk", "operation__codigo", "operation__buque"
         )
         .annotate(total=Sum("valor"))
@@ -259,7 +260,7 @@ def kpis_gastos():
 
     for entry in ranking:
         vehiculos = list(
-            OperationExpense.objects.filter(
+            gastos_op.filter(
                 operation__pk=entry["operation__pk"]
             )
             .values("vehicle__placa")
