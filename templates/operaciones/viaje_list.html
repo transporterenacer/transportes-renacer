@@ -27,7 +27,7 @@
         <td>{{ v.vehicle.placa }}</td>
         <td>{{ v.driver.nombre }}</td>
         <td><span class="badge {% if v.estado == 'finalizado' %}badge-ok{% else %}badge-idle{% endif %}">{{ v.get_estado_display }}</span></td>
-        <td><a class="btn-link" href="{% url 'operaciones:viaje_detalle' v.pk %}">Ver</a></td>
+        <td><a class="btn-primary" style="padding:4px 12px; font-size:.8125rem;" href="{% url 'operaciones:viaje_detalle' v.pk %}">Ver</a></td>
       </tr>
       {% endfor %}
     </tbody>
