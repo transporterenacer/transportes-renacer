@@ -167,7 +167,7 @@ def turno_nuevo(request, pk):
             fecha_inicio=inicio,
             fecha_fin=fin,
             tipo=data["tipo"],
-            valor_estandar=operation.valor_turno_dia if data["tipo"] == "dia" else operation.valor_turno_noche,
+            valor_estandar=data["valor"],
             meta_horas=operation.meta_horas,
             novedad_categoria=data.get("novedad_categoria"),
             novedad_descripcion=data.get("novedad_descripcion", ""),

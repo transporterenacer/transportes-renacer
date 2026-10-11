@@ -44,8 +44,6 @@ class Operation(AuditMixin):
     estado = models.CharField(max_length=20, choices=ESTADOS, default=PROGRAMADA)
     meta_horas = models.DecimalField(max_digits=4, decimal_places=1, default=11)
     tarifa_hora = models.DecimalField(max_digits=14, decimal_places=0)
-    valor_turno_dia = models.DecimalField(max_digits=14, decimal_places=0)
-    valor_turno_noche = models.DecimalField(max_digits=14, decimal_places=0)
     observaciones = models.TextField(blank=True, default="")
 
     class Meta:

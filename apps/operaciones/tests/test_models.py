@@ -21,8 +21,6 @@ class OperationTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         defaults.update(kwargs)
         return Operation.objects.create(**defaults)
@@ -60,7 +58,7 @@ class OperationTests(TestCase):
             fecha_fin=timezone.make_aware(timezone.datetime(2026, 8, 10, 17, 0)),
             tipo=Shift.DIA,
             meta_horas=op.meta_horas,
-            valor_estandar=op.valor_turno_dia,
+            valor_estandar=180000,
             estado=Shift.REALIZADO,
         )
         self.assertEqual(op.total_horas, 11.0)

@@ -13,14 +13,6 @@
       <span class="kpi-value" style="font-size:1.4rem;">{{ operation.meta_horas|floatformat:1 }} h</span>
     </div>
     <div class="form-field">
-      <span class="kpi-label">Turno día</span>
-      <span class="kpi-value" style="font-size:1.4rem;">${{ operation.valor_turno_dia|floatformat:0 }}</span>
-    </div>
-    <div class="form-field">
-      <span class="kpi-label">Turno noche</span>
-      <span class="kpi-value" style="font-size:1.4rem;">${{ operation.valor_turno_noche|floatformat:0 }}</span>
-    </div>
-    <div class="form-field">
       <span class="kpi-label">Tarifa cliente</span>
       <span class="kpi-value" style="font-size:1.4rem;">${{ operation.tarifa_hora|floatformat:0 }}/h</span>
     </div>
@@ -41,6 +33,9 @@
     </div>
     <div class="form-field">
       {{ form.tipo.label_tag }}{{ form.tipo }}{{ form.tipo.errors }}
+    </div>
+    <div class="form-field">
+      {{ form.valor.label_tag }}{{ form.valor }}{{ form.valor.errors }}
     </div>
     <div class="form-field">
       {{ form.novedad_categoria.label_tag }}{{ form.novedad_categoria }}{{ form.novedad_categoria.errors }}

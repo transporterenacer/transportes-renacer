@@ -131,8 +131,6 @@ op1, _ = Operation.objects.get_or_create(
         estado=Operation.ACTIVA,
         meta_horas=11,
         tarifa_hora=35000,
-        valor_turno_dia=180000,
-        valor_turno_noche=180000,
     ),
 )
 
@@ -147,8 +145,6 @@ op2, _ = Operation.objects.get_or_create(
         estado=Operation.PROGRAMADA,
         meta_horas=11,
         tarifa_hora=38000,
-        valor_turno_dia=190000,
-        valor_turno_noche=190000,
     ),
 )
 
@@ -164,8 +160,6 @@ op3, _ = Operation.objects.get_or_create(
         estado=Operation.FINALIZADA,
         meta_horas=11,
         tarifa_hora=32000,
-        valor_turno_dia=170000,
-        valor_turno_noche=170000,
     ),
 )
 

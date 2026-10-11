@@ -21,7 +21,7 @@ class OperationForm(forms.ModelForm):
         fields = [
             "codigo", "buque", "generador_de_carga", "puerto", "fecha_inicio",
             "fecha_fin_estimada", "meta_horas", "tarifa_hora",
-            "valor_turno_dia", "valor_turno_noche", "observaciones",
+            "observaciones",
         ]
         widgets = {
             "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
@@ -66,6 +66,10 @@ class ShiftForm(forms.Form):
         choices=_half_hour_choices(), label="Hora de fin"
     )
     tipo = forms.ChoiceField(choices=[("dia", "Día"), ("noche", "Noche")], label="Tipo")
+    valor = forms.DecimalField(
+        min_value=0, label="Valor del turno",
+        widget=forms.NumberInput(attrs={"placeholder": "Ej: 180000"}),
+    )
     novedad_categoria = forms.ModelChoiceField(
         queryset=IncidentCategory.objects.filter(activa=True),
         required=False,

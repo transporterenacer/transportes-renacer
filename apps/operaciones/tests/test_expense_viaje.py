@@ -46,7 +46,6 @@ class ExpenseViajeTests(TestCase):
         op = Operation.objects.create(
             codigo="OP-1", buque="B", generador_de_carga=self.cliente, puerto=puerto,
             fecha_inicio=timezone.localdate(), tarifa_hora=Decimal("35000"),
-            valor_turno_dia=Decimal("180000"), valor_turno_noche=Decimal("180000"),
         )
         gasto = OperationExpense(
             operation=op, viaje=self.viaje, vehicle=self.vehicle,

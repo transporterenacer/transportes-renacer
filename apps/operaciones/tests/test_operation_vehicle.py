@@ -21,8 +21,6 @@ class AsignacionMulasTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
 
     def test_asignar_mulas_cambia_estado_y_crea_relaciones(self):
@@ -53,8 +51,6 @@ class AsignacionMulasTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 11),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         asignar_mulas(self.op, [self.v1])
         asignar_mulas(op2, [self.v1])

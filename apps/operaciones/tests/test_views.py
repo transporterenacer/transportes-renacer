@@ -28,8 +28,6 @@ class OperacionesViewsTests(TestCase):
             fecha_inicio=date(2026, 8, 10),
             meta_horas=11,
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
             estado=Operation.ACTIVA,
         )
         asignar_mulas(self.op, [self.vehicle])
@@ -52,7 +50,7 @@ class OperacionesViewsTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo="dia",
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         response = self.client.get(reverse("operaciones:detalle", args=[self.op.pk]))
@@ -70,6 +68,7 @@ class OperacionesViewsTests(TestCase):
                 "fecha_fin_date": "2026-08-10",
                 "fecha_fin_time": "17:00",
                 "tipo": "dia",
+                "valor": "180000",
                 "novedad_categoria": self.lluvia.pk,
             },
         )
@@ -91,8 +90,6 @@ class AgregarMulaOperacionTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
             estado=Operation.ACTIVA,
         )
         self.client.force_login(self.user)

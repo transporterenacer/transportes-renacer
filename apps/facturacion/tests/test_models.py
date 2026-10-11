@@ -18,8 +18,6 @@ class BillingRecordTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
 
     def test_creation_y_str(self):
@@ -72,8 +70,6 @@ class ClientPaymentTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
 
     def test_creacion_y_str(self):

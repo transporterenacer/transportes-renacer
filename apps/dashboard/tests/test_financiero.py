@@ -27,8 +27,6 @@ class FinancieroDashboardTests(TestCase):
             fecha_inicio=date(2026, 8, 10),
             meta_horas=11,
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         Shift.objects.create(
             operation=self.op,
@@ -38,7 +36,7 @@ class FinancieroDashboardTests(TestCase):
             fecha_fin=timezone.make_aware(timezone.datetime(2026, 8, 10, 17, 0)),
             tipo=Shift.DIA,
             meta_horas=self.op.meta_horas,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             estado=Shift.REALIZADO,
         )
         BillingRecord.objects.create(

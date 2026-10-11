@@ -28,8 +28,6 @@ class GanttTests(TestCase):
             fecha_inicio=date(2026, 8, 10),
             meta_horas=11,
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         self.client.force_login(self.user)
 
@@ -42,7 +40,7 @@ class GanttTests(TestCase):
             fecha_fin=timezone.make_aware(fin),
             tipo=tipo,
             meta_horas=self.op.meta_horas,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             estado=estado,
         )
 

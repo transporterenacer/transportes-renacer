@@ -39,8 +39,6 @@ class FacturacionBase(TestCase):
             fecha_inicio=date(2026, 8, 10),
             meta_horas=11,
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         self.op2 = Operation.objects.create(
             codigo="OP-777",
@@ -50,8 +48,6 @@ class FacturacionBase(TestCase):
             fecha_inicio=date(2026, 8, 15),
             meta_horas=11,
             tarifa_hora=30000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
 
     def _shift(self, op, dia, estado=Shift.REALIZADO, inicio=6, fin=17):
@@ -63,7 +59,7 @@ class FacturacionBase(TestCase):
             fecha_fin=timezone.make_aware(timezone.datetime(2026, 8, dia, fin, 0)),
             tipo=Shift.DIA,
             meta_horas=op.meta_horas,
-            valor_estandar=op.valor_turno_dia,
+            valor_estandar=180000,
             estado=estado,
         )
 

@@ -25,8 +25,6 @@ class IncidentTests(TestCase):
             fecha_inicio=date(2026, 8, 10),
             meta_horas=11,
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
         asignar_mulas(self.op, [self.vehicle])
         self.lluvia = IncidentCategory.objects.create(nombre="Lluvia")
@@ -39,7 +37,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         self.assertEqual(shift.estado, Shift.REALIZADO)
@@ -54,7 +52,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
             novedad_categoria=self.lluvia,
             novedad_descripcion="Lluvia 09:00-10:00",
@@ -71,7 +69,7 @@ class IncidentTests(TestCase):
                 fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
                 fecha_fin=timezone.datetime(2026, 8, 10, 14, 0),
                 tipo=Shift.DIA,
-                valor_estandar=self.op.valor_turno_dia,
+                valor_estandar=180000,
                 meta_horas=self.op.meta_horas,
             )
 
@@ -83,7 +81,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 14, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
             novedad_categoria=self.lluvia,
         )
@@ -97,7 +95,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         with self.assertRaises(ValidationError) as ctx:
@@ -108,7 +106,7 @@ class IncidentTests(TestCase):
                 fecha_inicio=timezone.datetime(2026, 8, 10, 16, 0),
                 fecha_fin=timezone.datetime(2026, 8, 11, 6, 0),
                 tipo=Shift.DIA,
-                valor_estandar=self.op.valor_turno_dia,
+                valor_estandar=180000,
                 meta_horas=self.op.meta_horas,
             )
         self.assertIn(
@@ -124,7 +122,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         shift = registrar_turno(
@@ -134,7 +132,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 11, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 11, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         self.assertEqual(shift.vehicle, self.vehicle)
@@ -148,7 +146,7 @@ class IncidentTests(TestCase):
             fecha_inicio=timezone.datetime(2026, 8, 10, 6, 0),
             fecha_fin=timezone.datetime(2026, 8, 10, 17, 0),
             tipo=Shift.DIA,
-            valor_estandar=self.op.valor_turno_dia,
+            valor_estandar=180000,
             meta_horas=self.op.meta_horas,
         )
         cancelar_turno(shift, "Avería mecánica", usuario=None)

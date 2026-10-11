@@ -132,6 +132,7 @@ class Command(BaseCommand):
             ("OP-002", "BUQUE ORINOCO", gen2, 38000, 190000, 195000, hoy - timedelta(days=7), Operation.ACTIVA),
         ]
         operaciones = {}
+        self._valores = {}
         for codigo, buque, gen, tarifa, dia, noche, f_ini, estado in datos:
             op, _ = Operation.objects.get_or_create(
                 codigo=codigo,
@@ -142,18 +143,18 @@ class Command(BaseCommand):
                     "fecha_inicio": f_ini,
                     "estado": estado,
                     "tarifa_hora": tarifa,
-                    "valor_turno_dia": dia,
-                    "valor_turno_noche": noche,
                 },
             )
             operaciones[codigo] = op
+            self._valores[codigo] = {"dia": dia, "noche": noche}
         return operaciones
 
     def _crear_turno(self, op, placa, conductor, dia, tipo, estado):
         inicio, fin = _horas(dia) if tipo == Shift.DIA else _noche(dia)
         if Shift.objects.filter(driver=conductor, fecha_inicio=inicio).exists():
             return None
-        valor = op.valor_turno_dia if tipo == Shift.DIA else op.valor_turno_noche
+        valores = self._valores.get(op.codigo, {"dia": 180000, "noche": 180000})
+        valor = valores["dia"] if tipo == Shift.DIA else valores["noche"]
         return Shift.objects.create(
             operation=op,
             vehicle=placa,

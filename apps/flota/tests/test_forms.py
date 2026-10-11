@@ -21,8 +21,6 @@ class VehicleFormTests(TestCase):
             puerto=self.puerto,
             fecha_inicio=date(2026, 8, 10),
             tarifa_hora=35000,
-            valor_turno_dia=180000,
-            valor_turno_noche=180000,
         )
 
     def test_estado_en_taller_rechazado_si_operacion_activa(self):
