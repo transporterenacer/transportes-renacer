@@ -8,6 +8,7 @@ class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
         fields = ["placa", "marca", "modelo", "anio", "estado", "observaciones"]
+        labels = {"anio": "Año"}
 
     def clean_estado(self):
         estado = self.cleaned_data["estado"]
