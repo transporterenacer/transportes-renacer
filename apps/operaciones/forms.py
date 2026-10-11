@@ -1,11 +1,12 @@
 from datetime import time
 
 from django import forms
+from django.utils import timezone
 
 from apps.catalogos.models import IncidentCategory, Proveedor
 from apps.conductores.models import Driver
 from apps.flota.models import Vehicle
-from apps.operaciones.models import Operation, OperationExpense, Viaje
+from apps.operaciones.models import Operation, OperationExpense, Viaje, generar_numero_operacion
 from apps.operaciones.services import mulas_disponibles
 
 
@@ -13,11 +14,12 @@ class OperationForm(forms.ModelForm):
     mulas = forms.ModelMultipleChoiceField(
         queryset=Vehicle.objects.none(), required=False, label="Mulas"
     )
+    codigo = forms.CharField(disabled=True, label="Código")
 
     class Meta:
         model = Operation
         fields = [
-            "buque", "generador_de_carga", "puerto", "fecha_inicio",
+            "codigo", "buque", "generador_de_carga", "puerto", "fecha_inicio",
             "fecha_fin_estimada", "meta_horas", "tarifa_hora",
             "valor_turno_dia", "valor_turno_noche", "observaciones",
         ]
@@ -29,6 +31,9 @@ class OperationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["mulas"].queryset = mulas_disponibles()
+        if not self.instance.pk and not self.initial.get("codigo"):
+            anio = timezone.localdate().year
+            self.initial["codigo"] = generar_numero_operacion(anio)
 
 
 def _half_hour_choices():
