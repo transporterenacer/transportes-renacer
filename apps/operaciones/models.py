@@ -10,6 +10,15 @@ from apps.core.models import AuditMixin
 from apps.flota.models import Vehicle
 
 
+def generar_numero_operacion(anio):
+    prefix = f"OP-{anio}-"
+    ultimo = Operation.objects.filter(codigo__startswith=prefix).order_by("-codigo").first()
+    if ultimo is None:
+        return f"{prefix}001"
+    secuencia = int(ultimo.codigo.rsplit("-", 1)[1]) + 1
+    return f"{prefix}{secuencia:03d}"
+
+
 class Operation(AuditMixin):
     PROGRAMADA = "programada"
     ACTIVA = "activa"
@@ -23,7 +32,7 @@ class Operation(AuditMixin):
         (CANCELADA, "Cancelada"),
     ]
 
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20, unique=True, blank=True)
     buque = models.CharField(max_length=200)
     generador_de_carga = models.ForeignKey(
         CargoGenerator, on_delete=models.PROTECT, related_name="operaciones"
@@ -58,6 +67,12 @@ class Operation(AuditMixin):
             for shift in self.shifts.filter(estado=Shift.REALIZADO)
         )
         return Decimal(total)
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            anio = self.fecha_inicio.year if self.fecha_inicio else timezone.localdate().year
+            self.codigo = generar_numero_operacion(anio)
+        super().save(*args, **kwargs)
 
 
 class OperationVehicle(AuditMixin):

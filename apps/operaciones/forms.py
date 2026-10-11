@@ -17,10 +17,14 @@ class OperationForm(forms.ModelForm):
     class Meta:
         model = Operation
         fields = [
-            "codigo", "buque", "generador_de_carga", "puerto", "fecha_inicio",
+            "buque", "generador_de_carga", "puerto", "fecha_inicio",
             "fecha_fin_estimada", "meta_horas", "tarifa_hora",
             "valor_turno_dia", "valor_turno_noche", "observaciones",
         ]
+        widgets = {
+            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
+            "fecha_fin_estimada": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
